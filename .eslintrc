@@ -1,0 +1,21 @@
+{
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "rules": {
+    "semi": [2, "always"],
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-var-requires": 0,
+    "@typescript-eslint/no-empty-function": "off",
+    "prettier/prettier": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": ["@mui/*/*/*", "!@mui/material/test-utils/*"]
+      }
+    ]
+  },
+  "plugins": ["prettier"]
+
+}
