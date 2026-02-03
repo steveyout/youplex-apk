@@ -18,7 +18,7 @@ export const TopBar = () => {
                 <View style={styles.content}>
                     <View style={styles.logoSection}>
                         <Image
-                            source={{ uri: 'https://img.icons8.com/ios-filled/100/E91E63/movie-transparent.png' }}
+                            source={require('../assets/logo.png')}
                             style={[styles.logoImage, { tintColor: theme.colors.primary }]}
                         />
                         <Svg height="30" width="100">
