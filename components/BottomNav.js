@@ -9,6 +9,23 @@ export const BottomNav = ({ state, navigation }) => {
     const { theme, isDarkMode } = useAppTheme();
 
     if (!state || !state.routes) return null;
+    // 1. GET THE ACTIVE TAB
+    const currentTab = state.routes[state.index];
+
+    // 2. CHECK IF PLAYER IS ACTIVE IN THE NESTED STACK
+    // In a Stack inside a Tab, the stack state is found in currentTab.state
+    const getActiveRouteName = (route) => {
+        if (!route.state) return route.name;
+        const routeState = route.state;
+        return routeState.routes[routeState.index].name;
+    };
+
+    const activeRouteName = getActiveRouteName(currentTab);
+
+    // 3. HIDE NAV IF ON PLAYER SCREEN
+    if (activeRouteName === 'Player') {
+        return null;
+    }
 
     // We assume index 0 is your Home/Movies screen
     const isHomeFocused = state.index === 0;

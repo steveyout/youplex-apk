@@ -34,6 +34,7 @@ export const getAiringTodayTV = () => fetchFromTMDB("/tv/airing_today").then(res
 export const getPopularTV = () => fetchFromTMDB("/tv/popular").then(res => res?.results || []);
 export const getTopRatedTV = () => fetchFromTMDB("/tv/top_rated").then(res => res?.results || []);
 
+export const getCredits = (id, type) => fetchFromTMDB(`/${type}/${id}/credits`);
 // New: Fetch specific season episodes
 export const getSeasonDetails = (tvId, seasonNumber) =>
     fetchFromTMDB(`/tv/${tvId}/season/${seasonNumber}`);

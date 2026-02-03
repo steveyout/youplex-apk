@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MoviesScreen } from '../screens/MoviesScreen';
 import { TVScreen } from '../screens/TVScreen';
+import { PlayerScreen } from '../screens/PlayerScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { MovieDetailScreen } from '../screens/MovieDetailScreen';
 import { BottomNav } from '../components/BottomNav';
@@ -16,6 +17,7 @@ const HomeStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="HomeMain" component={HomeScreen} />
         <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
+        <Stack.Screen name="Player" component={PlayerScreen} />
     </Stack.Navigator>
 );
 
@@ -24,6 +26,7 @@ const MoviesStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MoviesMain" component={MoviesScreen} />
         <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
+        <Stack.Screen name="Player" component={PlayerScreen} />
     </Stack.Navigator>
 );
 
@@ -40,6 +43,7 @@ const TVStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="TVMain" component={TVScreen} />
         <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
+        <Stack.Screen name="Player" component={PlayerScreen} />
     </Stack.Navigator>
 );
 

@@ -9,6 +9,8 @@
     "expo-blur": "~15.0.8",
     "expo-constants": "~18.0.13",
     "expo-linear-gradient": "~15.0.8",
+    "expo-navigation-bar": "~5.0.10",
+    "expo-screen-orientation": "~9.0.8",
     "lucide-react-native": "^0.563.0",
     "prop-types": "^15.8.1",
     "react": "19.1.0",
@@ -19,7 +21,8 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.0",
+    "react-native-webview": "13.15.0"
   },
   "name": "youplex-apk",
   "version": "1.0.0",
