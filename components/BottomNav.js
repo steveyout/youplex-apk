@@ -59,13 +59,13 @@ export const BottomNav = ({ state, navigation }) => {
                 style={[styles.container, { borderColor: theme.colors.outlineVariant }]}
             >
                 {/* We keep the items, but the FAB acts as the primary "Play/Home" trigger */}
-                <NavItem Icon={Film} label="MOVIES" index={0} />
-                <NavItem Icon={Search} label="SEARCH" index={1} />
+                <NavItem Icon={Film} label="MOVIES" index={1} />
+                <NavItem Icon={Search} label="SEARCH" index={2} />
 
                 <View style={styles.spacer} />
 
-                <NavItem Icon={History} label="HISTORY" index={2} />
-                <NavItem Icon={Tv} label="TV" index={3} />
+                <NavItem Icon={History} label="HISTORY" index={3} />
+                <NavItem Icon={Tv} label="TV" index={4} />
             </BlurView>
         </View>
     );

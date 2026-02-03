@@ -24,6 +24,16 @@ export const getTrendingMovies = () => fetchFromTMDB("/trending/movie/day").then
 export const getTrendingTV = () => fetchFromTMDB("/trending/tv/day").then(res => res?.results || []);
 export const getDetails = (id, type = 'movie') => fetchFromTMDB(`/${type}/${id}`, "&append_to_response=credits,videos");
 
+// Movie-specific endpoints
+export const getNowPlayingMovies = () => fetchFromTMDB("/movie/now_playing").then(res => res?.results || []);
+export const getTopRatedMovies = () => fetchFromTMDB("/movie/top_rated").then(res => res?.results || []);
+export const getUpcomingMovies = () => fetchFromTMDB("/movie/upcoming").then(res => res?.results || []);
+
+// TV-specific endpoints
+export const getAiringTodayTV = () => fetchFromTMDB("/tv/airing_today").then(res => res?.results || []);
+export const getPopularTV = () => fetchFromTMDB("/tv/popular").then(res => res?.results || []);
+export const getTopRatedTV = () => fetchFromTMDB("/tv/top_rated").then(res => res?.results || []);
+
 // New: Fetch specific season episodes
 export const getSeasonDetails = (tvId, seasonNumber) =>
     fetchFromTMDB(`/tv/${tvId}/season/${seasonNumber}`);
