@@ -1,15 +1,23 @@
 {
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
+    "@react-native-picker/picker": "2.11.1",
+    "@react-navigation/bottom-tabs": "^7.12.0",
+    "@react-navigation/native": "^7.1.28",
+    "@react-navigation/native-stack": "^7.12.0",
     "expo": "^54.0.1",
     "expo-blur": "~15.0.8",
     "expo-constants": "~18.0.13",
+    "expo-linear-gradient": "~15.0.8",
     "lucide-react-native": "^0.563.0",
+    "prop-types": "^15.8.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
     "react-native-paper": "^5.14.5",
+    "react-native-picker-select": "^9.3.1",
     "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0"
   },
