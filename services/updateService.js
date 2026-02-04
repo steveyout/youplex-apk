@@ -1,4 +1,4 @@
-import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 
 const GITHUB_USER = "steveyout";
 const GITHUB_REPO = "youplex-apk";
@@ -10,35 +10,28 @@ export const checkForUpdates = async () => {
         );
 
         if (!response.ok) throw new Error('Failed to fetch from GitHub');
-
         const data = await response.json();
 
-        // 1. Get remote build (e.g., "v52" -> 52)
-        const remoteBuildNumber = parseInt(data.tag_name.replace(/[^\d]/g, ''), 10);
+        // 1. Remote Build: (e.g., "v52" -> 52)
+        const remoteBuild = parseInt(data.tag_name.replace(/[^\d]/g, ''), 10);
 
-        // 2. Get local build.
-        // NOTE: On some Expo versions, nativeBuildVersion might be undefined in dev.
-        // We use || 0 to prevent NaN comparisons.
-        const localBuildNumber = parseInt(Application.nativeBuildVersion || "0", 10);
+        // 2. Local Build: Use expoConfig to get the injected versionCode
+        // We fallback to 0 to avoid NaN if the config isn't loaded yet
+        const localBuild = Constants.expoConfig?.android?.versionCode || 0;
 
-        // DEBUG LOG - Check these in your terminal/flipper!
-        console.log(`[UpdateCheck] Raw Local: ${Application.nativeBuildVersion}`);
-        console.log(`[UpdateCheck] Parsed Local: ${localBuildNumber} vs Remote: ${remoteBuildNumber}`);
+        console.log(`[UpdateCheck] Local: ${localBuild} | Remote: ${remoteBuild}`);
 
-        // 3. Robust Comparison
-        // We only trigger if remote is strictly higher and both are valid numbers
-        if (!isNaN(remoteBuildNumber) && !isNaN(localBuildNumber)) {
-            if (remoteBuildNumber > localBuildNumber) {
-                const apkAsset = data.assets.find(asset => asset.name === "youplex-latest.apk");
+        // 3. Logic: If GitHub is strictly ahead of our internal version
+        if (remoteBuild > localBuild && localBuild !== 0) {
+            const apkAsset = data.assets.find(asset => asset.name === "youplex-latest.apk");
 
-                return {
-                    updateAvailable: true,
-                    versionName: data.tag_name,
-                    downloadUrl: apkAsset
-                        ? apkAsset.browser_download_url
-                        : `https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases/latest/download/youplex-latest.apk`
-                };
-            }
+            return {
+                updateAvailable: true,
+                versionName: data.tag_name,
+                downloadUrl: apkAsset
+                    ? apkAsset.browser_download_url
+                    : `https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases/latest/download/youplex-latest.apk`
+            };
         }
 
         return { updateAvailable: false };
