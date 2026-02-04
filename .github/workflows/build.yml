@@ -5,7 +5,7 @@ on:
       - main
 
 permissions:
-  contents: write # Allows the action to create/delete releases and upload assets
+  contents: write
 
 jobs:
   build:
@@ -30,17 +30,15 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🛠 Build APK (Local EAS)
+        id: build_step
         env:
           EXPO_PUBLIC_APP_TITLE: ${{ secrets.APP_TITLE }}
           EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
           EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
           EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
-        # We output to a consistent name to make deletion easier
         run: npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
 
       - name: 🧹 Clean Old Assets
-        # This removes the previous APK from the 'latest' release so the page stays clean
-        # '|| true' ensures the build continues even if there is no previous file to delete
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -56,9 +54,35 @@ jobs:
             **Build Details**
             - **Commit:** ${{ github.sha }}
             - **Message:** ${{ github.event.head_commit.message }}
-            - **Timestamp:** ${{ github.event.head_commit.timestamp }}
           files: ./youplex-latest.apk
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📢 Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            🚀 *New Youplex APK Build Success!*
+            
+            📝 *Message:* `${{ github.event.head_commit.message }}`
+            
+            🔗 [Direct Download](https://github.com/${{ github.repository }}/releases/latest/download/youplex-latest.apk)
+
+      - name: 💬 Discord Notification
+        uses: sarisia/actions-status-discord@v1
+        if: always() # This ensures you get an alert even if the build fails
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          # The 'content' field is where @everyone pings actually work
+          content: "@everyone 📢 New Build Status Update for Youplex Apk"
+          title: "YouPlex Build: ${{ job.status }}"
+          description: |
+            **Message:** ${{ github.event.head_commit.message }}
+            **Download:** [Click here](https://github.com/${{ github.repository }}/releases/latest/download/youplex-latest.apk)
+            **Logs:** [View Build Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: ${{ job.status == 'success' && '0x2ecc71' || '0xe74c3c' }}

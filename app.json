@@ -2,7 +2,7 @@
   "expo": {
     "name": "youplex-apk",
     "slug": "youplex-apk",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "extra": {
       "eas": {
         "projectId": "44f09ad8-a557-4c72-b030-ac02a4088981"

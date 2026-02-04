@@ -47,5 +47,5 @@ const styles = StyleSheet.create({
     container: { height: 50, borderRadius: 25, overflow: 'hidden', borderWidth: 1 },
     content: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
     logoSection: { flexDirection: 'row', alignItems: 'center' },
-    logoImage: { width: 24, height: 24, marginRight: 8 }
+    logoImage: { width: 24, height: 24 }
 });
