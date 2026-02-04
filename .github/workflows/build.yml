@@ -2,7 +2,7 @@ name: Continuous APK Build
 on:
   push:
     branches:
-      - main  # Or 'master' depending on your default branch name
+      - main
 
 jobs:
   build:
@@ -14,11 +14,12 @@ jobs:
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # Updated from 18 to 20 to meet minimatch requirements
           cache: 'npm'
 
       - name: 📦 Install Dependencies
-        run: npm install
+        # Added --engine-strict false as a safety measure
+        run: npm install --engine-strict false
 
       - name: 🚀 Setup Expo
         uses: expo/expo-github-action@v8
