@@ -34,9 +34,9 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
 
       - name: 🔢 Auto-Version app.json
-        # This uses 'jq' to update the android.versionCode in app.json to match the GitHub Run Number
         run: |
-          jq '.expo.android.versionCode = ${{ github.run_number }}' app.json > app.json.tmp && mv app.json.tmp app.json
+          # Force update both the string version and the numeric versionCode
+          jq '.expo.android.versionCode = ${{ github.run_number }} | .expo.version = "1.0.${{ github.run_number }}"' app.json > app.json.tmp && mv app.json.tmp app.json
           echo "Build number set to: ${{ github.run_number }}"
 
       - name: 📦 Install Dependencies
@@ -56,9 +56,19 @@ jobs:
           EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
           EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
         run: |
+          # 1. Generate native android directory
           npx expo prebuild --platform android --no-install
+          
+          # 2. THE FIX: Force inject the version into the native gradle file
+          # This overrides whatever Expo/EAS tries to do with the versioning
+          sed -i 's/versionCode [0-9]*/versionCode ${{ github.run_number }}/g' android/app/build.gradle
+          sed -i 's/versionName "[^"]*"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
+          
+          # 3. Ensure Google Services is in the native path
           mkdir -p android/app
           cp google-services.json android/app/google-services.json
+          
+          # 4. Build local APK
           npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
 
       - name: 🚢 Upload to Release
@@ -69,6 +79,7 @@ jobs:
           body: |
             **Youplex Update**
             - **Build Number:** ${{ github.run_number }}
+            - **Version:** 1.0.${{ github.run_number }}
             - **Commit:** ${{ github.sha }}
           make_latest: true
           files: ./youplex-latest.apk
