@@ -27,7 +27,8 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🛠 Build APK (Local EAS)
-        run: npx -p eas-cli eas build --platform android --profile preview --local --non-interactive --output=./youplex-${{ github.sha }}.apk
+        # We add --profile preview to match your eas.json
+        run: npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-${{ github.sha }}.apk
 
       - name: 🚢 Upload to Release
         uses: softprops/action-gh-release@v1
