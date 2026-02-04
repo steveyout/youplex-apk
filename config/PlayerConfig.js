@@ -4,35 +4,20 @@
 
 export const PLAYER_CONFIG = {
     providers: {
-        vidsrcme_ru_live: {
-            name: "Live Server 1",
-            baseUrl: "https://vidsrcme.ru/embed",
-            type: "vidsrc-style"
+        rivestream: {
+            name: "Server 7 (Rive)",
+            baseUrl: "https://rivestream.org/embed",
+            type: "rivestream-style"
         },
-        vidsrcme_su_live: {
-            name: "Live Server 2",
-            baseUrl: "https://vidsrcme.su/embed",
-            type: "vidsrc-style"
+        letsembed: {
+            name: "Server 9 (Lets)",
+            baseUrl: "https://letsembed.cc/embed",
+            type: "letsembed-style"
         },
-        vidsrc_me_ru_live: {
-            name: "Live Server 3",
-            baseUrl: "https://vidsrc-me.ru/embed",
-            type: "vidsrc-style"
-        },
-        vidsrc_me_su_live: {
-            name: "Live Server 4",
-            baseUrl: "https://vidsrc-me.su/embed",
-            type: "vidsrc-style"
-        },
-        vidsrc_embed_ru_live: {
-            name: "Live Server 5",
-            baseUrl: "https://vidsrc-embed.ru/embed",
-            type: "vidsrc-style"
-        },
-        vidsrc_embed_su_live: {
-            name: "Live Server 6",
-            baseUrl: "https://vidsrc-embed.su/embed",
-            type: "vidsrc-style"
+        multiembed: {
+            name: "Server 8 (Multi)",
+            baseUrl: "https://multiembed.mov/",
+            type: "multiembed-style"
         },
         vidsrc_ru: {
             name: "Server 1",
@@ -59,22 +44,20 @@ export const PLAYER_CONFIG = {
             baseUrl: "https://www.2embed.cc/embed",
             type: "vidsrc-style"
         },
-        embed_su: {
+        auto_embed: {
             name: "Server 6",
-            baseUrl: "https://embed.skin/embed",
+            baseUrl: "hhttps://player.autoembed.cc/embed",
             type: "vidsrc-style"
-        }
+        },
     },
 
     defaultProvider: "vidsrc_ru",
 
     whitelist: [
-        'vidsrcme.ru', 'vidsrcme.su', 'vidsrc-me.ru', 'vidsrc-me.su',
-        'vidsrc-embed.ru', 'vidsrc-embed.su', 'vidsrc.xyz', 'vidsrc.to',
-        'vidsrc.me', '2embed.cc', '2embed.to', 'vidplay.site', 'filemoon.sx',
-        'vizcloud.online', 'rabbitstream.net', 'fsharetv.co',
-        'multiembed.mov', 'superembed.online', 'embed.su',
-        'anyembed.to', 'admin-panel.site', 'player.vidsrc.xyz'
+        'letsembed.cc', 'rivestream.org', 'multiembed.mov', 'vidsrc-embed.ru',
+        'vidsrc.xyz', 'vidsrc.to', 'vidsrc.me', '2embed.cc', '2embed.to',
+        'vidplay.site', 'filemoon.sx', 'vizcloud.online', 'rabbitstream.net',
+        'fsharetv.co', 'superembed.online', 'embed.su', 'anyembed.to'
     ],
 
     blacklist: [

@@ -25,53 +25,41 @@ export const PlayerScreen = ({ route, navigation }) => {
 
     const getEmbedUrl = () => {
         const provider = PLAYER_CONFIG.providers[activeProvider];
+
         switch (provider.type) {
+            case "letsembed-style":
+                return type === 'movie'
+                    ? `${provider.baseUrl}/movie/?id=${id}`
+                    : `${provider.baseUrl}/tv/?id=${id}/${season}/${episode}`;
+
+            case "multiembed-style":
+                return type === 'movie'
+                    ? `${provider.baseUrl}?video_id=${id}&tmdb=1`
+                    : `${provider.baseUrl}?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
+
+            case "rivestream-style":
+                return type === 'movie'
+                    ? `${provider.baseUrl}?type=movie&id=${id}`
+                    : `${provider.baseUrl}?type=tv&id=${id}&season=${season}&episode=${episode}`;
+
             case "vidsrc-style":
                 return type === 'movie'
                     ? `${provider.baseUrl}/movie/${id}`
                     : `${provider.baseUrl}/tv/${id}/${season}/${episode}`;
+
             case "tmdb-param":
                 return type === 'movie'
                     ? `${provider.baseUrl}${id}&tmdb=1`
                     : `${provider.baseUrl}${id}&s=${season}&e=${episode}&tmdb=1`;
+
             default:
                 return `${provider.baseUrl}/${id}`;
         }
     };
 
-    const INJECTED_JAVASCRIPT =` (function() {
-        const style = document.createElement('style');
-        style.innerHTML = \`
-      /* Hide standard HTML5 controls */
-      video::-webkit-media-controls { display:none !important; }
-      video::-webkit-media-controls-panel { display:none !important; }
-      video::-webkit-media-controls-enclosure { display:none !important; }
-      
-      /* Hide common custom player controls (Video.js, Plyr, etc.) */
-      .vjs-control-bar, .plyr__controls, .jw-controls, .vjs-big-play-button {
-        display: none !important;
-        opacity: 0 !important;
-        visibility: hidden !important;
-      }
-    \`;
-    document.head.appendChild(style);
-
-    // Target the video element directly
-    const hideNative = () => {
-      const vids = document.querySelectorAll('video');
-      vids.forEach(v => {
-        v.controls = false;
-        // Optional: Force playsinline to keep it from jumping to full screen
-        v.setAttribute('playsinline', 'true');
-        v.setAttribute('webkit-playsinline', 'true');
-      });
-    };
-
-    // Run immediately and again when video starts playing
-    hideNative();
-    document.addEventListener('play', hideNative, true);
-  })();
-  true; // Required for injectedJavaScript to work
+    const INJECTED_JAVASCRIPT =` 
+     window.open = function() { return window; };
+  true; // note: this is required by react-native-webview
 `;
 
     const resetTimer = () => {
@@ -128,6 +116,8 @@ export const PlayerScreen = ({ route, navigation }) => {
             <WebView
                 key={activeProvider}
                 source={{ uri: getEmbedUrl() }}
+                mediaPlaybackRequiresUserAction={false}
+                allowsInlineMediaPlayback={true} // Recommended for iOS
                 style={styles.webview}
                 // HIGHLIGHT: Enable these for inspection
                 webviewDebuggingEnabled={true}
@@ -139,9 +129,7 @@ export const PlayerScreen = ({ route, navigation }) => {
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 allowsFullscreenVideo={true}
-                allowsInlineMediaPlayback={true}
                 setSupportMultipleWindows={false}
-                userAgent={PLAYER_CONFIG.userAgent}
                 onLoadStart={() => setLoading(true)}
                 onLoadEnd={() => setLoading(false)}
                 onTouchStart={onScreenTouch}

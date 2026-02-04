@@ -1,47 +1,71 @@
-# My Universal React Project
+# 🎬 YouPlex 🚀
 
-<p>
-  <!-- iOS -->
-  <a href="https://itunes.apple.com/app/apple-store/id982107779">
-    <img alt="Supports Expo iOS" longdesc="Supports Expo iOS" src="https://img.shields.io/badge/iOS-4630EB.svg?style=flat-square&logo=APPLE&labelColor=999999&logoColor=fff" />
-  </a>
-  <!-- Android -->
-  <a href="https://play.google.com/store/apps/details?id=host.exp.exponent&referrer=blankexample">
-    <img alt="Supports Expo Android" longdesc="Supports Expo Android" src="https://img.shields.io/badge/Android-4630EB.svg?style=flat-square&logo=ANDROID&labelColor=A4C639&logoColor=fff" />
-  </a>
-  <!-- Web -->
-  <a href="https://docs.expo.dev/workflow/web/">
-    <img alt="Supports Expo Web" longdesc="Supports Expo Web" src="https://img.shields.io/badge/web-4630EB.svg?style=flat-square&logo=GOOGLE-CHROME&labelColor=4285F4&logoColor=fff" />
-  </a>
-</p>
+![Platform](https://img.shields.io/badge/Platform-Android-green?style=for-the-badge&logo=android)
+![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
-## Launch your own
+**YouPlex** is a high-performance, native Android application designed to aggregate the best streaming providers into one seamless interface. Access thousands of Movies, TV Shows, and **Live TV** channels without the clutter.
 
-[![Launch with Expo](https://github.com/expo/examples/blob/master/.gh-assets/launch.svg?raw=true)](https://launch.expo.dev/?github=https://github.com/expo/examples/tree/master/blank)
+---
 
-## 🚀 How to use
+## 📸 App Preview
 
-- Install packages with `yarn` or `npm install`.
-  - If you have native iOS code run `npx pod-install`
-- Run `yarn start` or `npm run start` to start the bundler.
-- Open the project in a React runtime to try it:
-  - iOS: [Client iOS](https://itunes.apple.com/app/apple-store/id982107779)
-  - Android: [Client Android](https://play.google.com/store/apps/details?id=host.exp.exponent&referrer=blankexample)
-  - Web: Any web browser
+| UI Showcase | Home Interface |
+| :---: | :---: |
+| <img src="https://i.ibb.co/nqHd9m1z/screenshot1.png" width="300"> | <img src="https://i.ibb.co/nq4FJGhY/screenshot2.png" width="300"> |
 
-## Running/Modifying Native Code
+---
 
-You can generate native iOS and Android projects from your Expo config file (**app.json**/ **app.config.js**) by runnning `npx expo prebuild`. These native projects can then be compiled and run via XCode and Android Studio.
+## 📥 Download & Installation
 
-> 💡 Learn more about [native code in Expo](https://docs.expo.dev/workflow/customizing/)
+Click the button below to grab the latest official version.
 
-## Publishing
+[![Download APK](https://img.shields.io/badge/Download-Latest%20APK-E91E63?style=for-the-badge&logo=android)](https://github.com/steveyout/youplex-apk/releases/latest/download/youplex-latest.apk)
 
-- Deploy the native app to the App store and Play store using this guide: [Deployment](https://docs.expo.dev/distribution/app-stores/).
-- Deploy the website using this guide: [Web deployment](https://docs.expo.dev/distribution/publishing-websites/).
+1. **Download** the `.apk` file from the button above.
+2. **Open** the file on your Android device.
+3. **Allow** "Install from Unknown Sources" in your settings if prompted.
+4. **Launch** YouPlex and start your cinema experience!
 
-## 📝 Notes
+---
 
-- Learn more about [Universal React](https://docs.expo.dev/).
-- See what API and components are [available in the React runtimes](https://docs.expo.dev/versions/latest/).
-- Find out more about developing apps and websites: [Guides](https://docs.expo.dev/guides/).
+## ✨ Key Features
+
+* 📺 **Live TV Suite:** Integrated support for high-speed live servers including `vidsrcme`, `vidsrc-me`, and `vidsrc-embed`.
+* 🎥 **Massive Library:** Powered by 6+ premium VOD providers (Vidsrc, Superembed, 2Embed, and more).
+* 🛡️ **Ad-Blocker Logic:** Custom-built WebView controllers that hide intrusive ads and provider UI elements for a "Cinema" feel.
+* 🔢 **Auto-Versioning:** The app detects new GitHub releases automatically and prompts you to update instantly.
+* 🚀 **Native Performance:** Built with React Native & Expo for a smooth, lag-free experience.
+
+---
+
+## 🛠 Tech Stack
+
+| Feature | Technology |
+| :--- | :--- |
+| **Framework** | React Native / Expo |
+| **Automation** | GitHub Actions (CI/CD) |
+| **Package Management** | NPM / EAS CLI |
+| **Versioning** | Auto-injected via `jq` & Gradle |
+
+---
+
+## 🤖 CI/CD Automation
+
+This project uses **GitHub Actions** to automate the build process. Every push to `main` triggers:
+1.  **Auto-Versioning:** Injects the GitHub Run Number into the Android `versionCode`.
+2.  **Local EAS Build:** Compiles the native APK.
+3.  **Automatic Release:** Tags the build and uploads the APK to the "Releases" page.
+
+---
+
+## 🤝 Community & Support
+
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?style=for-the-badge&logo=discord)](https://t.me/youplexannouncments)
+[![Telegram](https://img.shields.io/badge/Telegram-Join%20Channel-26A6E4?style=for-the-badge&logo=telegram)](https://discord.gg/5eWu9Vz6tQ)
+
+---
+
+## ⚖️ Disclaimer
+
+*YouPlex does not host any files. It simply provides a convenient interface to access publicly available content via third-party providers. Please support the official creators where possible.*
