@@ -24,6 +24,7 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#000000"
       },
+      "versionCode": 16,
       "package": "cc.youplex.movies",
       "googleServicesFile": "./google-services.json"
     },

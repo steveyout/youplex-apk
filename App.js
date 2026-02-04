@@ -4,38 +4,23 @@ import * as Application from 'expo-application';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
 import { ForceUpdateModal } from './components/ForceUpdateModal';
+import {checkForUpdates} from "./services/updateService";
 
 export default function App() {
     const [updateVisible, setUpdateVisible] = useState(false);
-    const [downloadUrl, setDownloadUrl] = useState(null);
+    const [releaseId, setReleaseId] = useState(null);
+    const[downloadUrl,setDownloadUrl]=useState(null);
 
     useEffect(() => {
-        const checkUpdate = async () => {
-            try {
-                // 1. Fetch latest release from your GitHub
-                const response = await fetch('https://api.github.com/repos/steveyout/youplex-apk/releases/latest');
-                const data = await response.json();
-
-                // 2. Get current app version (from app.json)
-                const currentVersion = Application.nativeApplicationVersion;
-                // Note: Ensure your GitHub release "tag_name" (e.g., 1.0.1)
-                // matches your app.json version exactly.
-                const latestVersion = data.tag_name;
-
-                if (latestVersion !== currentVersion) {
-                    // 3. Find our specific APK asset
-                    const apk = data.assets.find(a => a.name === 'youplex-latest.apk');
-                    if (apk) {
-                        setDownloadUrl(apk.browser_download_url);
-                        setUpdateVisible(true);
-                    }
-                }
-            } catch (e) {
-                console.log("Update check failed", e);
+        const check = async () => {
+            const result = await checkForUpdates();
+            if (result.updateAvailable) {
+                setReleaseId(result.newReleaseId);
+                setUpdateVisible(true);
+                setDownloadUrl(result.downloadUrl)
             }
         };
-
-        checkUpdate();
+        check();
     }, []);
     return (
         <AppThemeProvider>

@@ -1,30 +1,30 @@
 import * as Application from 'expo-application';
 
-const GITHUB_API = "https://api.github.com/repos/steveyout/youplex-apk/releases/latest";
+const GITHUB_USER = "steveyout";
+const GITHUB_REPO = "youplex-apk";
 
 export const checkForUpdates = async () => {
     try {
-        const response = await fetch(GITHUB_API);
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`);
         const data = await response.json();
 
-        // GitHub returns the tag_name (e.g., "v1.0.5" or "latest")
-        // If you use tag_name for versioning, compare it here
-        const latestVersion = data.tag_name;
-        const currentVersion = Application.nativeApplicationVersion;
+        // Extract the number from the tag (e.g., "v45" -> 45)
+        const latestBuildNumber = parseInt(data.tag_name.replace(/[^\d]/g, ''), 10);
 
-        // For a "Every Commit" build, we can compare the commit SHA
-        // or just check the published_at date.
-        const lastBuildDate = data.published_at;
+        // Get the local versionCode (ensure this matches what you put in app.json)
+        const currentBuildNumber = Application.nativeBuildVersion;
 
-        // Find the APK in the assets array
-        const apkAsset = data.assets.find(asset => asset.name === "youplex-latest.apk");
+        console.log(`Checking: Local Build ${currentBuildNumber} vs Remote Build ${latestBuildNumber}`);
 
-        return {
-            updateAvailable: latestVersion !== currentVersion, // Logic depends on your tagging
-            downloadUrl: apkAsset ? apkAsset.browser_download_url : null,
-            releaseNotes: data.body,
-            version: latestVersion
-        };
+        if (latestBuildNumber > parseInt(currentBuildNumber, 10)) {
+            return {
+                updateAvailable: true,
+                downloadUrl: `https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases/latest/download/youplex-latest.apk`,
+                versionName: data.tag_name
+            };
+        }
+
+        return { updateAvailable: false };
     } catch (error) {
         console.error("Update check failed:", error);
         return { updateAvailable: false };
