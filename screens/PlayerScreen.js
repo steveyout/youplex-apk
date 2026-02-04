@@ -39,14 +39,40 @@ export const PlayerScreen = ({ route, navigation }) => {
         }
     };
 
-    const INJECTED_JAVASCRIPT = `
-    (function() {
-      window.open = function() { return null; };
-      const style = document.createElement('style');
-      style.innerHTML = \` ${PLAYER_CONFIG.hiddenElements.join(', ')} { display: none !important; } \`;
-      document.head.appendChild(style);
-    })();
-  `;
+    const INJECTED_JAVASCRIPT =` (function() {
+        const style = document.createElement('style');
+        style.innerHTML = \`
+      /* Hide standard HTML5 controls */
+      video::-webkit-media-controls { display:none !important; }
+      video::-webkit-media-controls-panel { display:none !important; }
+      video::-webkit-media-controls-enclosure { display:none !important; }
+      
+      /* Hide common custom player controls (Video.js, Plyr, etc.) */
+      .vjs-control-bar, .plyr__controls, .jw-controls, .vjs-big-play-button {
+        display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+      }
+    \`;
+    document.head.appendChild(style);
+
+    // Target the video element directly
+    const hideNative = () => {
+      const vids = document.querySelectorAll('video');
+      vids.forEach(v => {
+        v.controls = false;
+        // Optional: Force playsinline to keep it from jumping to full screen
+        v.setAttribute('playsinline', 'true');
+        v.setAttribute('webkit-playsinline', 'true');
+      });
+    };
+
+    // Run immediately and again when video starts playing
+    hideNative();
+    document.addEventListener('play', hideNative, true);
+  })();
+  true; // Required for injectedJavaScript to work
+`;
 
     const resetTimer = () => {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -103,6 +129,11 @@ export const PlayerScreen = ({ route, navigation }) => {
                 key={activeProvider}
                 source={{ uri: getEmbedUrl() }}
                 style={styles.webview}
+                // HIGHLIGHT: Enable these for inspection
+                webviewDebuggingEnabled={true}
+                scrollEnabled={true}
+                // Allows you to see the context menu on long-press
+                menuEnabled={true}
                 onShouldStartLoadWithRequest={handleNavigationStateChange}
                 injectedJavaScript={INJECTED_JAVASCRIPT}
                 javaScriptEnabled={true}
