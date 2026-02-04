@@ -1,46 +1,88 @@
 import React from 'react';
-import { StyleSheet, Platform, Linking } from 'react-native';
-import { Modal, Text, Button, Card } from 'react-native-paper';
-import { logUpdateClick } from '../services/analytics';
+import { Modal, View, Text, StyleSheet, TouchableOpacity, Linking, BackHandler } from 'react-native';
 
-export const ForceUpdateModal = ({ visible, downloadUrl }) => {
+const ForceUpdateModal = ({ visible, updateData }) => {
+    if (!visible || !updateData) return null;
+
     const handleUpdate = () => {
-        logUpdateClick('latest');
-        // If we have a direct APK link from GitHub, use it.
-        // Otherwise, fallback to Store links.
-        const fallbackUrl = Platform.OS === 'ios'
-            ? 'https://apps.apple.com/app/idYOUR_ID'
-            : 'https://play.google.com/store/apps/details?id=YOUR_ID';
-
-        const finalUrl = (Platform.OS === 'android' && downloadUrl)
-            ? downloadUrl
-            : fallbackUrl;
-
-        Linking.openURL(finalUrl);
+        Linking.openURL(updateData.downloadUrl);
     };
 
     return (
-        <Modal visible={visible} dismissable={false} contentContainerStyle={styles.wrapper}>
-            <Card style={styles.card}>
-                <Card.Content style={styles.content}>
-                    <Text variant="headlineSmall" style={styles.title}>Update Required</Text>
-                    <Text style={styles.message}>
-                        A new version of Youplex is available. Please update to continue streaming.
+        <Modal transparent visible={visible} animationType="fade">
+            <View style={styles.overlay}>
+                <View style={styles.modalContainer}>
+                    <Text style={styles.title}>Update Required</Text>
+                    <Text style={styles.version}>Version: {updateData.versionName}</Text>
+                    <Text style={styles.description}>
+                        To keep YouPlex running smoothly and securely, you need to install the latest update.
                     </Text>
-                    <Button mode="contained" onPress={handleUpdate} style={styles.button}>
-                        Update Now
-                    </Button>
-                </Card.Content>
-            </Card>
+
+                    <TouchableOpacity style={styles.button} onPress={handleUpdate}>
+                        <Text style={styles.buttonText}>Download & Install</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.footer}>The app will close if you don't update.</Text>
+                </View>
+            </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
-    wrapper: { padding: 20, alignItems: 'center' },
-    card: { borderRadius: 28, width: Platform.OS === 'web' ? 350 : '100%', padding: 10, backgroundColor: '#1a1a1a' },
-    content: { alignItems: 'center' },
-    title: { fontWeight: '900', color: '#E91E63', marginBottom: 10 },
-    message: { textAlign: 'center', marginBottom: 20, opacity: 0.7, color: '#fff' },
-    button: { width: '100%', borderRadius: 12, backgroundColor: '#E91E63' }
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContainer: {
+        width: '100%',
+        backgroundColor: '#1a1a1a',
+        borderRadius: 20,
+        padding: 25,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E91E63', // Using your theme color
+    },
+    title: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#fff',
+        marginBottom: 10,
+    },
+    version: {
+        fontSize: 14,
+        color: '#E91E63',
+        marginBottom: 15,
+        fontWeight: '600',
+    },
+    description: {
+        fontSize: 16,
+        color: '#ccc',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 25,
+    },
+    button: {
+        backgroundColor: '#E91E63',
+        paddingVertical: 15,
+        paddingHorizontal: 40,
+        borderRadius: 30,
+        width: '100%',
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    footer: {
+        marginTop: 20,
+        fontSize: 12,
+        color: '#666',
+    },
 });
+
+export default ForceUpdateModal;

@@ -1,32 +1,33 @@
 import React, {useEffect, useState} from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import * as Application from 'expo-application';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
-import { ForceUpdateModal } from './components/ForceUpdateModal';
-import {checkForUpdates} from "./services/updateService";
+import ForceUpdateModal from './components/ForceUpdateModal'; // Adjust path accordingly
+import { checkForUpdates } from './services/updateService';
 
 export default function App() {
-    const [updateVisible, setUpdateVisible] = useState(false);
-    const [releaseId, setReleaseId] = useState(null);
-    const[downloadUrl,setDownloadUrl]=useState(null);
+    const [isUpdateRequired, setIsUpdateRequired] = useState(false);
+    const [updateInfo, setUpdateInfo] = useState(null);
 
     useEffect(() => {
-        const check = async () => {
+        const checkStatus = async () => {
             const result = await checkForUpdates();
             if (result.updateAvailable) {
-                setReleaseId(result.newReleaseId);
-                setUpdateVisible(true);
-                setDownloadUrl(result.downloadUrl)
+                setUpdateInfo(result);
+                setIsUpdateRequired(true);
             }
         };
-        check();
+
+        checkStatus();
     }, []);
     return (
         <AppThemeProvider>
             <SafeAreaProvider>
                 <RootNavigator />
-                <ForceUpdateModal visible={updateVisible} downloadUrl={downloadUrl} />
+                <ForceUpdateModal
+                    visible={isUpdateRequired}
+                    updateData={updateInfo}
+                />
             </SafeAreaProvider>
         </AppThemeProvider>
     );

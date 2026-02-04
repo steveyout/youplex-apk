@@ -31,8 +31,13 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: 🔑 Setup Google Services
-        # Create it in the root first
         run: echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
+
+      - name: 🔢 Auto-Version app.json
+        # This uses 'jq' to update the android.versionCode in app.json to match the GitHub Run Number
+        run: |
+          jq '.expo.android.versionCode = ${{ github.run_number }}' app.json > app.json.tmp && mv app.json.tmp app.json
+          echo "Build number set to: ${{ github.run_number }}"
 
       - name: 📦 Install Dependencies
         run: npm ci --engine-strict false
@@ -51,47 +56,35 @@ jobs:
           EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
           EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
         run: |
-          # 1. Generate the 'android' folder
           npx expo prebuild --platform android --no-install
-          
-          # 2. MANUALLY COPY the file into the native app folder 
-          # This satisfies the RUN_GRADLEW search locations
           mkdir -p android/app
           cp google-services.json android/app/google-services.json
-          
-          # 3. Build locally
           npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
 
       - name: 🚢 Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-            # Creates tags like 'v45', 'v46'
-            tag_name: v${{ github.run_number }}
-            name: Build v${{ github.run_number }}
-            body: |
-              **Youplex Automated Build**
-              - **Build Number:** ${{ github.run_number }}
-              - **Commit:** ${{ github.sha }}
-            # This ensures this new tag is marked as the "Latest Release"
-            make_latest: true
-            files: ./youplex-latest.apk
+          tag_name: v${{ github.run_number }}
+          name: Build v${{ github.run_number }}
+          body: |
+            **Youplex Update**
+            - **Build Number:** ${{ github.run_number }}
+            - **Commit:** ${{ github.sha }}
+          make_latest: true
+          files: ./youplex-latest.apk
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 📢 Telegram Notification
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          debug: true
           format: markdown
-          disable_web_page_preview: true
           message: |
-            🚀 *New Youplex APK Build Success!*
+            🚀 *Youplex v${{ github.run_number }} is out!*
             
-            📝 *Message:* `${{ github.event.head_commit.message }}`
-            
-            🔗 [Direct Download](https://github.com/${{ github.repository }}/releases/latest/download/youplex-latest.apk)
+            🔗 [Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/youplex-latest.apk)
 
       - name: 💬 Discord Notification
         uses: sarisia/actions-status-discord@v1
@@ -99,10 +92,8 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          content: "@everyone 📢 New Build Status Update for Youplex Apk"
-          title: "YouPlex Build: ${{ job.status }}"
+          content: "@everyone 📢 Youplex Update v${{ github.run_number }} is ready!"
           description: |
-            **Message:** ${{ github.event.head_commit.message }}
-            **Download:** [Click here](https://github.com/${{ github.repository }}/releases/latest/download/youplex-latest.apk)
-            **Logs:** [View Build Log](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          color: ${{ job.status == 'success' && '0x2ecc71' || '0xe74c3c' }}
+            **Build:** ${{ github.run_number }}
+            **Download:** [Direct Link](https://github.com/${{ github.repository }}/releases/latest/download/youplex-latest.apk)
+          color: 0xE91E63

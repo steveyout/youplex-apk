@@ -1,26 +1,51 @@
 import * as Application from 'expo-application';
 
-const GITHUB_USER = "steveyout";
-const GITHUB_REPO = "youplex-apk";
+const GITHUB_USER = "steveyout"; // Replace with your actual username
+const GITHUB_REPO = "youplex-apk";     // Replace with your actual repo name
 
+/**
+ * Checks GitHub for a newer version by comparing the numeric build version.
+ */
 export const checkForUpdates = async () => {
     try {
-        const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`);
+        const response = await fetch(
+            `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`,
+            {
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Cache-Control': 'no-cache'
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch from GitHub');
+        }
+
         const data = await response.json();
 
-        // Extract the number from the tag (e.g., "v45" -> 45)
-        const latestBuildNumber = parseInt(data.tag_name.replace(/[^\d]/g, ''), 10);
+        // 1. Get the remote build number from the tag (e.g., "v47" -> 47)
+        const remoteBuildNumber = parseInt(data.tag_name.replace(/[^\d]/g, ''), 10);
 
-        // Get the local versionCode (ensure this matches what you put in app.json)
-        const currentBuildNumber = Application.nativeBuildVersion;
+        // 2. Get the local build number (the versionCode we injected via GitHub Actions)
+        // On Android, nativeBuildVersion returns the versionCode.
+        const localBuildNumber = parseInt(Application.nativeBuildVersion, 10);
 
-        console.log(`Checking: Local Build ${currentBuildNumber} vs Remote Build ${latestBuildNumber}`);
+        console.log(`[UpdateCheck] Local Build: ${localBuildNumber} | Remote Build: ${remoteBuildNumber}`);
 
-        if (latestBuildNumber > parseInt(currentBuildNumber, 10)) {
+        // 3. Compare as integers
+        if (remoteBuildNumber > localBuildNumber) {
+            // Look for the specific APK asset name
+            const apkAsset = data.assets.find(asset => asset.name === "youplex-latest.apk");
+
             return {
                 updateAvailable: true,
-                downloadUrl: `https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases/latest/download/youplex-latest.apk`,
-                versionName: data.tag_name
+                versionName: data.tag_name, // e.g., "v47"
+                releaseNotes: data.body,
+                // Fallback to the generic latest link if asset find fails
+                downloadUrl: apkAsset
+                    ? apkAsset.browser_download_url
+                    : `https://github.com/${GITHUB_USER}/${GITHUB_REPO}/releases/latest/download/youplex-latest.apk`
             };
         }
 
