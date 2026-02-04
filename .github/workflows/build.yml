@@ -1,7 +1,8 @@
-name: Build App
+name: Build APK and Release
 on:
   push:
-    branches: [main]
+    tags:
+      - 'v*' # Triggers when you push a tag like v1.0.1
 
 jobs:
   build:
@@ -10,23 +11,30 @@ jobs:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
 
-      - name: ⚡️ Setup Node
-        uses: actions/setup-node@v4
+      - name: ⚙️ Setup Node
+        uses: actions/checkout@v4
         with:
           node-version: 18
-          cache: 'npm'
 
-      - name: 🛠 Setup Expo
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🚀 Setup Expo
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 📦 Install dependencies
-        run: npm install
+      - name: 🛠 Build APK (EAS)
+        run: npx eas-build --platform android --profile preview --local --non-interactive --output=./youplex.apk
 
-      - name: 🚀 Build Android (Internal Sharing)
-        run: eas build --platform android --profile preview --non-interactive
-
-      - name: 🍎 Build iOS (Internal Sharing)
-        run: eas build --platform ios --profile preview --non-interactive
+      - name: 🚢 Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./youplex.apk
+          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
