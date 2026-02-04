@@ -18,16 +18,30 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: 'npm' # Caches npm dependencies based on package-lock.json
+
+      - name: 💎 Cache Gradle
+        # Local EAS builds use Gradle. Caching these files prevents downloading
+        # hundreds of megabytes of Android build tools on every commit.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: 📦 Install Dependencies
-        run: npm install --engine-strict false
+        # 'npm ci' is faster than 'npm install' in CI environments
+        run: npm ci --engine-strict false
 
       - name: 🚀 Setup Expo & EAS
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+          cache: true # Enables EAS CLI internal caching
 
       - name: 🛠 Build APK (Local EAS)
         id: build_step
@@ -74,11 +88,10 @@ jobs:
 
       - name: 💬 Discord Notification
         uses: sarisia/actions-status-discord@v1
-        if: always() # This ensures you get an alert even if the build fails
+        if: always()
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          # The 'content' field is where @everyone pings actually work
           content: "@everyone 📢 New Build Status Update for Youplex Apk"
           title: "YouPlex Build: ${{ job.status }}"
           description: |
