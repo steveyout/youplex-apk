@@ -18,11 +18,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # Caches npm dependencies based on package-lock.json
+          cache: 'npm'
 
       - name: 💎 Cache Gradle
-        # Local EAS builds use Gradle. Caching these files prevents downloading
-        # hundreds of megabytes of Android build tools on every commit.
         uses: actions/cache@v4
         with:
           path: |
@@ -32,8 +30,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: 🔑 Setup Google Services
+        # Decode the base64 secret into the actual file EAS needs
+        run: echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
+
       - name: 📦 Install Dependencies
-        # 'npm ci' is faster than 'npm install' in CI environments
         run: npm ci --engine-strict false
 
       - name: 🚀 Setup Expo & EAS
@@ -41,10 +42,9 @@ jobs:
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-          cache: true # Enables EAS CLI internal caching
+          cache: true
 
       - name: 🛠 Build APK (Local EAS)
-        id: build_step
         env:
           EXPO_PUBLIC_APP_TITLE: ${{ secrets.APP_TITLE }}
           EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
@@ -67,7 +67,7 @@ jobs:
           body: |
             **Build Details**
             - **Commit:** ${{ github.sha }}
-            - **Message:** ${{ github.event.head_commit.message }}
+            - **Analytics Enabled:** Yes
           files: ./youplex-latest.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,6 +77,7 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
+          debug: true
           format: markdown
           disable_web_page_preview: true
           message: |

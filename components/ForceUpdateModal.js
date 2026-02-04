@@ -1,9 +1,11 @@
 import React from 'react';
 import { StyleSheet, Platform, Linking } from 'react-native';
 import { Modal, Text, Button, Card } from 'react-native-paper';
+import { logUpdateClick } from '../services/analytics';
 
 export const ForceUpdateModal = ({ visible, downloadUrl }) => {
     const handleUpdate = () => {
+        logUpdateClick('latest');
         // If we have a direct APK link from GitHub, use it.
         // Otherwise, fallback to Store links.
         const fallbackUrl = Platform.OS === 'ios'

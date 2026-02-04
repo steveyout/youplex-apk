@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { useAppTheme } from '../theme/ThemeContext';
 import { AppNavigator } from './AppNavigator';
 import { ForceUpdateModal } from '../components/ForceUpdateModal';
+import { logScreenView } from '../services/analytics';
 
 const RootNavigator = () => {
     const { theme } = useAppTheme();
@@ -19,7 +20,10 @@ const RootNavigator = () => {
     return (
         <PaperProvider theme={theme}>
             <Portal.Host>
-                <NavigationContainer theme={theme}>
+                <NavigationContainer theme={theme} onStateChange={(state) => {
+                    const route = state.routes[state.index];
+                    logScreenView(route.name);
+                }}>
                     <AppNavigator />
                     <ForceUpdateModal visible={needsUpdate} />
                 </NavigationContainer>

@@ -9,7 +9,7 @@
       }
     },
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/logo.png",
@@ -24,8 +24,12 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#000000"
       },
-      "package": "cc.youplex.movies"
+      "package": "cc.youplex.movies",
+      "googleServicesFile": "./google-services.json"
     },
+    "plugins": [
+      "@react-native-firebase/app"
+    ],
     "androidNavigationBar": {
       "visible": "sticky-immersive",
       "backgroundColor": "#000000",

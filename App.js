@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Application from 'expo-application';
 import { AppThemeProvider } from './theme/ThemeContext';

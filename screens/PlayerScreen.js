@@ -15,6 +15,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import { PLAYER_CONFIG } from '../config/PlayerConfig';
 
+
 export const PlayerScreen = ({ route, navigation }) => {
     const { id, type, season, episode } = route.params;
     const [loading, setLoading] = useState(true);
