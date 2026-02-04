@@ -3,6 +3,11 @@
     "name": "youplex-apk",
     "slug": "youplex-apk",
     "version": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "44f09ad8-a557-4c72-b030-ac02a4088981"
+      }
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -28,7 +33,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "owner": "steveyout"
   },
   "build": {
     "preview": {
