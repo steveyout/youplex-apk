@@ -14,22 +14,20 @@ jobs:
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # Updated from 18 to 20 to meet minimatch requirements
+          node-version: 20
           cache: 'npm'
 
       - name: 📦 Install Dependencies
-        # Added --engine-strict false as a safety measure
         run: npm install --engine-strict false
 
-      - name: 🚀 Setup Expo
+      - name: 🚀 Setup Expo & EAS
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🛠 Build APK (Local EAS)
-        # Using --local saves your Expo cloud build credits
-        run: npx eas-build --platform android --profile preview --local --non-interactive --output=./youplex-${{ github.sha }}.apk
+        run: npx -p eas-cli eas build --platform android --profile preview --local --non-interactive --output=./youplex-${{ github.sha }}.apk
 
       - name: 🚢 Upload to Release
         uses: softprops/action-gh-release@v1
