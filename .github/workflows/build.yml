@@ -4,6 +4,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write # Allows the action to create/delete releases and upload assets
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,18 +30,34 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🛠 Build APK (Local EAS)
-        # We add --profile preview to match your eas.json
-        run: npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-${{ github.sha }}.apk
+        env:
+          EXPO_PUBLIC_APP_TITLE: ${{ secrets.APP_TITLE }}
+          EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
+          EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
+          EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
+        # We output to a consistent name to make deletion easier
+        run: npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
+
+      - name: 🧹 Clean Old Assets
+        # This removes the previous APK from the 'latest' release so the page stays clean
+        # '|| true' ensures the build continues even if there is no previous file to delete
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete-asset latest "youplex-latest.apk" -y || true
 
       - name: 🚢 Upload to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Latest Build
           body: |
-            Automated build from commit: ${{ github.sha }}
-            Message: ${{ github.event.head_commit.message }}
-          files: ./youplex-${{ github.sha }}.apk
+            **Build Details**
+            - **Commit:** ${{ github.sha }}
+            - **Message:** ${{ github.event.head_commit.message }}
+            - **Timestamp:** ${{ github.event.head_commit.timestamp }}
+          files: ./youplex-latest.apk
           draft: false
           prerelease: false
         env:
