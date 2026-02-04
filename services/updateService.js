@@ -9,13 +9,7 @@ const GITHUB_REPO = "youplex-apk";     // Replace with your actual repo name
 export const checkForUpdates = async () => {
     try {
         const response = await fetch(
-            `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`,
-            {
-                headers: {
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Cache-Control': 'no-cache'
-                }
-            }
+            `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`
         );
 
         if (!response.ok) {
