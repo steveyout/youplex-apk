@@ -35,6 +35,7 @@ const SearchStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="SearchMain" component={SearchScreen} />
         <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
+        <Stack.Screen name="Player" component={PlayerScreen} />
     </Stack.Navigator>
 );
 
