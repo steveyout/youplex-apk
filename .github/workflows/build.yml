@@ -31,7 +31,6 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: 🔑 Setup Google Services
-        # Decode the base64 secret into the actual file EAS needs
         run: echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
 
       - name: 📦 Install Dependencies
@@ -44,30 +43,21 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           cache: true
 
-      - name: 🛠 Build APK (Local EAS)
+      - name: 🛠 Prebuild and Build APK
         env:
           EXPO_PUBLIC_APP_TITLE: ${{ secrets.APP_TITLE }}
           EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
           EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
           EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
-        run: npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
-
-      - name: 🧹 Clean Old Assets
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete-asset latest "youplex-latest.apk" -y || true
+          npx expo prebuild --platform android --no-install
+          npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
 
       - name: 🚢 Upload to Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: Latest Build
-          body: |
-            **Build Details**
-            - **Commit:** ${{ github.sha }}
-            - **Analytics Enabled:** Yes
           files: ./youplex-latest.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
