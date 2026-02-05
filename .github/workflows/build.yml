@@ -35,7 +35,6 @@ jobs:
 
       - name: 🔢 Auto-Version app.json
         run: |
-          # Force update both the string version and the numeric versionCode
           jq '.expo.android.versionCode = ${{ github.run_number }} | .expo.version = "1.0.${{ github.run_number }}"' app.json > app.json.tmp && mv app.json.tmp app.json
           echo "Build number set to: ${{ github.run_number }}"
 
@@ -59,8 +58,7 @@ jobs:
           # 1. Generate native android directory
           npx expo prebuild --platform android --no-install
           
-          # 2. THE FIX: Force inject the version into the native gradle file
-          # This overrides whatever Expo/EAS tries to do with the versioning
+          # 2. Force inject the version into the native gradle file
           sed -i 's/versionCode [0-9]*/versionCode ${{ github.run_number }}/g' android/app/build.gradle
           sed -i 's/versionName "[^"]*"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
           
@@ -86,6 +84,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 🗑️ Delete Old Releases
+        uses: dev-drprasad/delete-older-releases@v0.3.3
+        with:
+          keep_latest: 3
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 📢 Telegram Notification
         uses: appleboy/telegram-action@master
         with:
@@ -106,5 +112,5 @@ jobs:
           content: "@everyone 📢 Youplex Update v${{ github.run_number }} is ready!"
           description: |
             **Build:** ${{ github.run_number }}
-            **Download:** [Direct Link](https://github.com/${{ github.repository }}/releases/latest/download/youplex-latest.apk)
+            **Download:** [Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/youplex-latest.apk)
           color: 0xE91E63
