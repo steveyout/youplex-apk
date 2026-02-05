@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "youplex-apk",
+    "name": "Youplex",
     "slug": "youplex-apk",
     "version": "1.0.1",
     "extra": {
@@ -24,7 +24,7 @@
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 23,
+      "versionCode": 24,
       "package": "cc.youplex.movies",
       "googleServicesFile": "./google-services.json"
     },

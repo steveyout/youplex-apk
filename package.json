@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-firebase/analytics": "^23.8.6",
     "@react-native-firebase/app": "^23.8.6",
     "@react-native-picker/picker": "2.11.1",
@@ -14,6 +15,7 @@
     "expo-linear-gradient": "~15.0.8",
     "expo-navigation-bar": "~5.0.10",
     "expo-screen-orientation": "~9.0.8",
+    "expo-status-bar": "~3.0.9",
     "lucide-react-native": "^0.563.0",
     "prop-types": "^15.8.1",
     "react": "19.1.0",

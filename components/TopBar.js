@@ -19,7 +19,7 @@ export const TopBar = () => {
                     <View style={styles.logoSection}>
                         <Image
                             source={require('../assets/logo.png')}
-                            style={[styles.logoImage, { tintColor: theme.colors.primary }]}
+                            style={[styles.logoImage]}
                         />
                         <Svg height="30" width="100">
                             <Defs>
@@ -28,7 +28,7 @@ export const TopBar = () => {
                                     <Stop offset="1" stopColor="#9C27B0" stopOpacity="1" />
                                 </SvgGradient>
                             </Defs>
-                            <SvgText fill="url(#grad)" fontSize="22" fontWeight="900" x="0" y="22">Youplex</SvgText>
+                            <SvgText fill="url(#grad)" fontSize="22" fontWeight="900" x="0" y="22">{process.env.EXPO_PUBLIC_APP_TITLE}</SvgText>
                         </Svg>
                     </View>
                     <IconButton

@@ -14,14 +14,44 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import { PLAYER_CONFIG } from '../config/PlayerConfig';
-
+import { saveToHistory } from '../services/historyService'; // Service Imported
 
 export const PlayerScreen = ({ route, navigation }) => {
-    const { id, type, season, episode } = route.params;
+    // Route params now include the full item object for history
+    const { id, type, season, episode, item } = route.params;
     const [loading, setLoading] = useState(true);
     const [showControls, setShowControls] = useState(true);
     const [activeProvider, setActiveProvider] = useState(PLAYER_CONFIG.defaultProvider);
     const timerRef = useRef(null);
+
+    // --- UPDATED: SAVE TO HISTORY ON MOUNT ---
+    useEffect(() => {
+        const recordHistory = async () => {
+            try {
+                // Merge the specific playback params into the history item
+                const historyItem = {
+                    ...(item || {}), // Spread existing TMDB data
+                    id: id,
+                    type: type,
+                    // Prioritize the specific season/episode passed in route params
+                    season: type === 'tv' ? season : null,
+                    episode: type === 'tv' ? episode : null,
+                    // Ensure fallbacks for display
+                    title: item?.title || item?.name || route.params.title || "Unknown",
+                    poster_path: item?.poster_path || route.params.poster_path,
+                    backdrop_path: item?.backdrop_path || route.params.backdrop_path,
+                    watchedAt: new Date().toISOString()
+                };
+
+                await saveToHistory(historyItem);
+                console.log(`[History] Saved: ${historyItem.title} S:${season} E:${episode}`);
+            } catch (e) {
+                console.error("History could not be saved", e);
+            }
+        };
+
+        if (id) recordHistory();
+    }, [id, season, episode]); // Added dependencies so it re-saves if user skips to next episode
 
     const getEmbedUrl = () => {
         const provider = PLAYER_CONFIG.providers[activeProvider];
@@ -57,10 +87,10 @@ export const PlayerScreen = ({ route, navigation }) => {
         }
     };
 
-    const INJECTED_JAVASCRIPT =` 
+    const INJECTED_JAVASCRIPT = ` 
      window.open = function() { return window; };
-  true; // note: this is required by react-native-webview
-`;
+     true; 
+    `;
 
     const resetTimer = () => {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -84,7 +114,7 @@ export const PlayerScreen = ({ route, navigation }) => {
             async function enterImmersiveMode() {
                 if (Platform.OS === 'android') {
                     await NavigationBar.setVisibilityAsync("hidden");
-                    await NavigationBar.setBehaviorAsync("overlay-swipe");
+                    await NavigationBar.setBehaviorAsync("sticky-immersive"); // Changed to sticky
                 }
                 if (Platform.OS !== 'web') {
                     StatusBar.setHidden(true, 'fade');
@@ -117,13 +147,8 @@ export const PlayerScreen = ({ route, navigation }) => {
                 key={activeProvider}
                 source={{ uri: getEmbedUrl() }}
                 mediaPlaybackRequiresUserAction={false}
-                allowsInlineMediaPlayback={true} // Recommended for iOS
+                allowsInlineMediaPlayback={true}
                 style={styles.webview}
-                // HIGHLIGHT: Enable these for inspection
-                webviewDebuggingEnabled={true}
-                scrollEnabled={true}
-                // Allows you to see the context menu on long-press
-                menuEnabled={true}
                 onShouldStartLoadWithRequest={handleNavigationStateChange}
                 injectedJavaScript={INJECTED_JAVASCRIPT}
                 javaScriptEnabled={true}
@@ -142,7 +167,6 @@ export const PlayerScreen = ({ route, navigation }) => {
                 </View>
             )}
 
-            {/* Control Overlay at the top */}
             <View
                 style={[styles.overlay, { opacity: showControls ? 1 : 0 }]}
                 pointerEvents={showControls ? "box-none" : "none"}

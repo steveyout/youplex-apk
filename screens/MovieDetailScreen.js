@@ -122,7 +122,13 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                             mode="contained" icon="play"
                             style={styles.mainPlayBtn}
                             contentStyle={{ height: 48 }}
-                            onPress={() => navigation.navigate('Player', { id, type: 'movie' })}
+                            onPress={() => navigation.navigate('Player', {
+                                id: item.id,
+                                type: 'movie',
+                                item: item, // This is the full Movie object
+                                title: item.title,
+                                poster_path: item.poster_path
+                            })}
                         >
                             WATCH NOW
                         </Button>
@@ -174,7 +180,15 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                                     <Surface key={ep.id} style={styles.episodeCard} elevation={1}>
                                         <TouchableOpacity
                                             style={styles.episodeInner}
-                                            onPress={() => navigation.navigate('Player', { id, type: 'tv', season: selectedSeason, episode: ep.episode_number })}
+                                            onPress={() => navigation.navigate('Player', {
+                                                id: id,
+                                                type: 'tv',
+                                                season: selectedSeason,
+                                                episode: ep.episode_number,
+                                                item: item, // This is the full Show object
+                                                title: item.name, // Helpful fallback
+                                                poster_path: item.poster_path
+                                            })}
                                         >
                                             <View style={styles.epImageContainer}>
                                                 <Image source={{ uri: ep.still_path ? `${IMAGE_PATH}${ep.still_path}` : `${IMAGE_PATH}${item.poster_path}` }} style={styles.epImage} />

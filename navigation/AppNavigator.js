@@ -6,6 +6,7 @@ import { MoviesScreen } from '../screens/MoviesScreen';
 import { TVScreen } from '../screens/TVScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
 import { SearchScreen } from '../screens/SearchScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { MovieDetailScreen } from '../screens/MovieDetailScreen';
 import { BottomNav } from '../components/BottomNav';
 
@@ -48,6 +49,15 @@ const TVStack = () => (
     </Stack.Navigator>
 );
 
+///history
+const HistoryStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="HistoryMain" component={HistoryScreen} />
+        <Stack.Screen name="MovieDetail" component={MovieDetailScreen} />
+        <Stack.Screen name="Player" component={PlayerScreen} />
+    </Stack.Navigator>
+);
+
 export const AppNavigator = () => {
     return (
         <Tab.Navigator
@@ -58,7 +68,7 @@ export const AppNavigator = () => {
             <Tab.Screen name="Home" component={HomeStack} />
             <Tab.Screen name="Movies" component={MoviesStack} />
             <Tab.Screen name="Search" component={SearchStack} />
-            <Tab.Screen name="History" component={HomeScreen} />
+            <Tab.Screen name="History" component={HistoryStack} />
             <Tab.Screen name="TV" component={TVStack} />
         </Tab.Navigator>
     );
