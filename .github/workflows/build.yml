@@ -31,7 +31,9 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: 🔑 Setup Google Services
-        run: echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
+        run: |
+          # Setup Google Services for the build
+          echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
 
       - name: 🔢 Auto-Version app.json
         run: |
@@ -50,10 +52,14 @@ jobs:
 
       - name: 🛠 Prebuild and Build APK
         env:
+          # Environment variables for your app
           EXPO_PUBLIC_APP_TITLE: ${{ secrets.APP_TITLE }}
           EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
           EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
           EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
+          # Token to fetch remote credentials from Expo
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_GITHUB_PAT: ${{ secrets.GH_PAT }}
         run: |
           # 1. Generate native android directory
           npx expo prebuild --platform android --no-install
@@ -62,11 +68,11 @@ jobs:
           sed -i 's/versionCode [0-9]*/versionCode ${{ github.run_number }}/g' android/app/build.gradle
           sed -i 's/versionName "[^"]*"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
           
-          # 3. Ensure Google Services is in the native path
+          # 3. Ensure Google Services is in the native path for the build
           mkdir -p android/app
           cp google-services.json android/app/google-services.json
           
-          # 4. Build local APK
+          # 4. Build local APK using remote credentials from Expo servers
           npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
 
       - name: 🚢 Upload to Release
@@ -101,16 +107,18 @@ jobs:
           message: |
             🚀 *Youplex v${{ github.run_number }} is out!*
             
+            *Commit:* `${{ github.event.head_commit.message }}`
+            
             🔗 [Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/youplex-latest.apk)
 
       - name: 💬 Discord Notification
         uses: sarisia/actions-status-discord@v1
-        if: always()
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
           content: "@everyone 📢 Youplex Update v${{ github.run_number }} is ready!"
           description: |
             **Build:** ${{ github.run_number }}
+            *Commit:* `${{ github.event.head_commit.message }}`
             **Download:** [Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/youplex-latest.apk)
           color: 0xE91E63

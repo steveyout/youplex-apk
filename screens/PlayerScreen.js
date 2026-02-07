@@ -5,90 +5,73 @@ import {
     ActivityIndicator,
     Platform,
     StatusBar,
-    ScrollView
+    ScrollView,
+    Pressable,
+    BackHandler,
+    Dimensions
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { IconButton, Button, Text } from 'react-native-paper';
-import { X } from 'lucide-react-native';
+import { IconButton, Text } from 'react-native-paper';
+import { X, Server } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import { PLAYER_CONFIG } from '../config/PlayerConfig';
-import { saveToHistory } from '../services/historyService'; // Service Imported
+import { saveToHistory } from '../services/historyService';
+import { isTV } from '../utils/device';
+
+const { width, height } = Dimensions.get('window');
 
 export const PlayerScreen = ({ route, navigation }) => {
-    // Route params now include the full item object for history
     const { id, type, season, episode, item } = route.params;
     const [loading, setLoading] = useState(true);
     const [showControls, setShowControls] = useState(true);
     const [activeProvider, setActiveProvider] = useState(PLAYER_CONFIG.defaultProvider);
-    const timerRef = useRef(null);
 
-    // --- UPDATED: SAVE TO HISTORY ON MOUNT ---
+    const timerRef = useRef(null);
+    const webViewRef = useRef(null);
+
+    // Save to History on Mount
     useEffect(() => {
         const recordHistory = async () => {
             try {
-                // Merge the specific playback params into the history item
                 const historyItem = {
-                    ...(item || {}), // Spread existing TMDB data
+                    ...(item || {}),
                     id: id,
                     type: type,
-                    // Prioritize the specific season/episode passed in route params
                     season: type === 'tv' ? season : null,
                     episode: type === 'tv' ? episode : null,
-                    // Ensure fallbacks for display
                     title: item?.title || item?.name || route.params.title || "Unknown",
                     poster_path: item?.poster_path || route.params.poster_path,
                     backdrop_path: item?.backdrop_path || route.params.backdrop_path,
                     watchedAt: new Date().toISOString()
                 };
-
                 await saveToHistory(historyItem);
-                console.log(`[History] Saved: ${historyItem.title} S:${season} E:${episode}`);
             } catch (e) {
-                console.error("History could not be saved", e);
+                console.error("History error", e);
             }
         };
-
         if (id) recordHistory();
-    }, [id, season, episode]); // Added dependencies so it re-saves if user skips to next episode
+    }, [id, season, episode]);
 
     const getEmbedUrl = () => {
         const provider = PLAYER_CONFIG.providers[activeProvider];
-
         switch (provider.type) {
-            case "letsembed-style":
-                return type === 'movie'
-                    ? `${provider.baseUrl}/movie/?id=${id}`
-                    : `${provider.baseUrl}/tv/?id=${id}/${season}/${episode}`;
-
-            case "multiembed-style":
-                return type === 'movie'
-                    ? `${provider.baseUrl}?video_id=${id}&tmdb=1`
-                    : `${provider.baseUrl}?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
-
-            case "rivestream-style":
-                return type === 'movie'
-                    ? `${provider.baseUrl}?type=movie&id=${id}`
-                    : `${provider.baseUrl}?type=tv&id=${id}&season=${season}&episode=${episode}`;
-
-            case "vidsrc-style":
-                return type === 'movie'
-                    ? `${provider.baseUrl}/movie/${id}`
-                    : `${provider.baseUrl}/tv/${id}/${season}/${episode}`;
-
-            case "tmdb-param":
-                return type === 'movie'
-                    ? `${provider.baseUrl}${id}&tmdb=1`
-                    : `${provider.baseUrl}${id}&s=${season}&e=${episode}&tmdb=1`;
-
-            default:
-                return `${provider.baseUrl}/${id}`;
+            case "letsembed-style": return type === 'movie' ? `${provider.baseUrl}/movie/?id=${id}` : `${provider.baseUrl}/tv/?id=${id}/${season}/${episode}`;
+            case "multiembed-style": return type === 'movie' ? `${provider.baseUrl}?video_id=${id}&tmdb=1` : `${provider.baseUrl}?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
+            case "rivestream-style": return type === 'movie' ? `${provider.baseUrl}?type=movie&id=${id}` : `${provider.baseUrl}?type=tv&id=${id}&season=${season}&episode=${episode}`;
+            case "vidsrc-style": return type === 'movie' ? `${provider.baseUrl}/movie/${id}` : `${provider.baseUrl}/tv/${id}/${season}/${episode}`;
+            case "tmdb-param": return type === 'movie' ? `${provider.baseUrl}${id}&tmdb=1` : `${provider.baseUrl}${id}&s=${season}&e=${episode}&tmdb=1`;
+            default: return `${provider.baseUrl}/${id}`;
         }
     };
 
     const INJECTED_JAVASCRIPT = ` 
      window.open = function() { return window; };
+     document.body.style.backgroundColor = 'black';
+     // Prevent frame escaping
+     if (window.top !== window.self) { window.top.location = window.self.location; }
      true; 
     `;
 
@@ -96,122 +79,158 @@ export const PlayerScreen = ({ route, navigation }) => {
         if (timerRef.current) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => {
             setShowControls(false);
-        }, 4000);
+        }, isTV ? 8000 : 4000);
     };
 
-    const onScreenTouch = () => {
-        setShowControls(true);
-        resetTimer();
+    const toggleControls = () => {
+        setShowControls(prev => !prev);
+        if (!showControls) resetTimer();
     };
 
+    // TV Hardware Back Handling
     useEffect(() => {
-        resetTimer();
-        return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-    }, []);
+        const backAction = () => {
+            if (!showControls) {
+                setShowControls(true);
+                resetTimer();
+                return true;
+            }
+            // If controls are visible, let it go back to Details
+            return false;
+        };
+        const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+        return () => backHandler.remove();
+    }, [showControls]);
 
     useFocusEffect(
         React.useCallback(() => {
             async function enterImmersiveMode() {
                 if (Platform.OS === 'android') {
                     await NavigationBar.setVisibilityAsync("hidden");
-                    await NavigationBar.setBehaviorAsync("sticky-immersive"); // Changed to sticky
+                    await NavigationBar.setBehaviorAsync("sticky-immersive");
                 }
-                if (Platform.OS !== 'web') {
-                    StatusBar.setHidden(true, 'fade');
-                    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-                }
+                StatusBar.setHidden(true, 'fade');
+                await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
             }
             enterImmersiveMode();
             return () => {
                 async function exitImmersiveMode() {
                     if (Platform.OS === 'android') await NavigationBar.setVisibilityAsync("visible");
-                    if (Platform.OS !== 'web') {
-                        StatusBar.setHidden(false, 'fade');
-                        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-                    }
+                    StatusBar.setHidden(false, 'fade');
+                    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
                 }
                 exitImmersiveMode();
             };
         }, [])
     );
 
-    const handleNavigationStateChange = (request) => {
-        const isWhitelisted = PLAYER_CONFIG.whitelist.some(domain => request.url.includes(domain));
-        const isBlacklisted = PLAYER_CONFIG.blacklist.some(term => request.url.includes(term));
-        return isWhitelisted && !isBlacklisted;
-    };
-
     return (
         <View style={styles.container}>
-            <WebView
-                key={activeProvider}
-                source={{ uri: getEmbedUrl() }}
-                mediaPlaybackRequiresUserAction={false}
-                allowsInlineMediaPlayback={true}
-                style={styles.webview}
-                onShouldStartLoadWithRequest={handleNavigationStateChange}
-                injectedJavaScript={INJECTED_JAVASCRIPT}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                allowsFullscreenVideo={true}
-                setSupportMultipleWindows={false}
-                onLoadStart={() => setLoading(true)}
-                onLoadEnd={() => setLoading(false)}
-                onTouchStart={onScreenTouch}
-            />
+            {/* The actual video content */}
+            <View style={styles.videoWrapper}>
+                <WebView
+                    ref={webViewRef}
+                    key={activeProvider}
+                    source={{ uri: getEmbedUrl() }}
+                    mediaPlaybackRequiresUserAction={false}
+                    allowsInlineMediaPlayback={true}
+                    style={styles.webview}
+                    injectedJavaScript={INJECTED_JAVASCRIPT}
+                    onLoadStart={() => setLoading(true)}
+                    onLoadEnd={() => setLoading(false)}
+                />
+            </View>
 
+            {/* Loading Indicator */}
             {loading && (
-                <View style={styles.loading} pointerEvents="none">
+                <View style={styles.loading}>
                     <ActivityIndicator size="large" color="#E91E63" />
                     <Text style={styles.loadingText}>Connecting to {PLAYER_CONFIG.providers[activeProvider].name}...</Text>
                 </View>
             )}
 
-            <View
-                style={[styles.overlay, { opacity: showControls ? 1 : 0 }]}
-                pointerEvents={showControls ? "box-none" : "none"}
-            >
-                <View style={styles.topBar} pointerEvents="box-none">
-                    <IconButton
-                        icon={() => <X color="white" size={24} />}
-                        style={styles.closeButton}
-                        onPress={() => navigation.goBack()}
-                    />
+            {/* Invisible interaction layer for TV to wake up controls */}
+            {!showControls && (
+                <Pressable
+                    onPress={toggleControls}
+                    style={styles.touchLayer}
+                />
+            )}
 
-                    <View style={styles.serverWrapper} pointerEvents="box-none">
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            contentContainerStyle={styles.serverScroll}
-                        >
-                            {Object.keys(PLAYER_CONFIG.providers).map((key) => (
-                                <Button
-                                    key={key}
-                                    mode="contained"
-                                    onPress={() => {
-                                        setActiveProvider(key);
-                                        onScreenTouch();
-                                    }}
-                                    style={[
-                                        styles.serverBtn,
-                                        { backgroundColor: activeProvider === key ? '#E91E63' : 'rgba(255,255,255,0.2)' }
-                                    ]}
-                                    labelStyle={styles.serverBtnLabel}
-                                >
-                                    {PLAYER_CONFIG.providers[key].name}
-                                </Button>
-                            ))}
-                        </ScrollView>
-                    </View>
+            {/* Controls Overlay */}
+            {showControls && (
+                <View style={styles.overlay}>
+                    <LinearGradient
+                        colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.5)', 'transparent']}
+                        style={styles.topGradient}
+                    >
+                        <View style={styles.topBar}>
+                            <Pressable
+                                hasTVPreferredFocus={true}
+                                onPress={() => navigation.goBack()}
+                                style={({ focused }) => [
+                                    styles.closeBtn,
+                                    focused && styles.tvFocusBorder
+                                ]}
+                            >
+                                <X color="white" size={isTV ? 32 : 24} />
+                            </Pressable>
+
+                            <View style={styles.infoWrapper}>
+                                <Text style={styles.movieTitle} numberOfLines={1}>
+                                    {item?.title || item?.name}
+                                </Text>
+                                {type === 'tv' && (
+                                    <Text style={styles.episodeInfo}>
+                                        Season {season} • Episode {episode}
+                                    </Text>
+                                )}
+                            </View>
+
+                            <View style={styles.serverSection}>
+                                <Server color="rgba(255,255,255,0.6)" size={isTV ? 20 : 16} />
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.serverList}>
+                                    {Object.keys(PLAYER_CONFIG.providers).map((key) => (
+                                        <Pressable
+                                            key={key}
+                                            onPress={() => {
+                                                setActiveProvider(key);
+                                                resetTimer();
+                                            }}
+                                            style={({ focused }) => [
+                                                styles.serverBtn,
+                                                activeProvider === key && styles.serverBtnActive,
+                                                focused && styles.tvFocusBorder
+                                            ]}
+                                        >
+                                            <Text style={styles.serverBtnLabel}>
+                                                {PLAYER_CONFIG.providers[key].name}
+                                            </Text>
+                                        </Pressable>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        </View>
+                    </LinearGradient>
+
+                    {isTV && (
+                        <View style={styles.tvHint}>
+                            <Text style={styles.hintText}>
+                                D-Pad to Switch Servers • BACK to hide menu
+                            </Text>
+                        </View>
+                    )}
                 </View>
-            </View>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: 'black' },
+    videoWrapper: { flex: 1, zIndex: 1 },
     webview: { flex: 1, backgroundColor: 'black' },
+    touchLayer: { ...StyleSheet.absoluteFillObject, zIndex: 2 },
     loading: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
@@ -219,44 +238,61 @@ const styles = StyleSheet.create({
         backgroundColor: 'black',
         zIndex: 5
     },
-    loadingText: { color: 'white', marginTop: 10, fontSize: 12, fontWeight: 'bold' },
+    loadingText: { color: 'white', marginTop: 15, fontSize: 16, fontWeight: 'bold' },
     overlay: {
         ...StyleSheet.absoluteFillObject,
         zIndex: 10,
-        backgroundColor: 'rgba(0,0,0,0.3)'
+    },
+    topGradient: {
+        paddingTop: isTV ? 30 : 20,
+        paddingBottom: 60,
+        paddingHorizontal: 25,
     },
     topBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: Platform.OS === 'ios' ? 40 : 20,
-        paddingHorizontal: 15,
+        justifyContent: 'space-between'
     },
-    closeButton: {
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        borderRadius: 25,
-        marginRight: 10
+    closeBtn: {
+        padding: 10,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255,255,255,0.1)',
     },
-    serverWrapper: {
-        flex: 1,
-        height: 50,
-        justifyContent: 'center'
-    },
-    serverScroll: {
+    infoWrapper: { flex: 1, marginLeft: 20 },
+    movieTitle: { color: 'white', fontSize: isTV ? 24 : 18, fontWeight: '900' },
+    episodeInfo: { color: '#E91E63', fontSize: isTV ? 16 : 12, fontWeight: 'bold', marginTop: 4 },
+    serverSection: {
+        flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        paddingRight: 20
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 15,
+        borderRadius: 30,
+        maxWidth: isTV ? '50%' : '40%'
     },
+    serverList: { paddingVertical: 10, paddingLeft: 10, gap: 10 },
     serverBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
         borderRadius: 20,
-        height: 32,
-        justifyContent: 'center',
-        minWidth: 80
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        minWidth: isTV ? 100 : 70,
     },
-    serverBtnLabel: {
-        fontSize: 10,
-        color: 'white',
-        fontWeight: 'bold',
-        marginVertical: 0,
-        marginHorizontal: 10
-    }
+    serverBtnActive: { backgroundColor: '#E91E63' },
+    serverBtnLabel: { color: 'white', fontSize: isTV ? 14 : 11, fontWeight: 'bold', textAlign: 'center' },
+    tvFocusBorder: {
+        borderWidth: 3,
+        borderColor: '#E91E63',
+        transform: [{ scale: 1.1 }],
+        backgroundColor: 'rgba(233, 30, 99, 0.2)'
+    },
+    tvHint: {
+        position: 'absolute',
+        bottom: 40,
+        alignSelf: 'center',
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        borderRadius: 20
+    },
+    hintText: { color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: 'bold' }
 });

@@ -20,7 +20,7 @@
     "prop-types": "^15.8.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "react-native": "0.81.4",
+    "react-native": "0.81.5",
     "react-native-paper": "^5.14.5",
     "react-native-picker-select": "^9.3.1",
     "react-native-safe-area-context": "~5.6.0",
@@ -34,8 +34,8 @@
   "private": true,
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   }
 }

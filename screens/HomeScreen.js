@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, ScrollView, ActivityIndicator, FlatList, ImageBackground, TouchableOpacity, Image } from 'react-native';
+import {
+    StyleSheet, View, ScrollView, ActivityIndicator, FlatList,
+    ImageBackground, Pressable, Image, Platform, Dimensions
+} from 'react-native';
 import { Text, Button, IconButton } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TopBar } from '../components/TopBar';
-import { BottomNav } from '../components/BottomNav';
 import { useAppTheme } from '../theme/ThemeContext';
 import { MovieCard } from '../components/MovieCard';
 import { getTrendingMovies, getTrendingTV, IMAGE_PATH } from '../services/api';
-import { getHistory } from '../services/historyService'; // Import History Service
-import { useIsFocused, useNavigation } from '@react-navigation/native'; // For auto-refresh
+import { getHistory } from '../services/historyService';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { isTV } from '../utils/device';
+
+const { width } = Dimensions.get('window');
 
 export const HomeScreen = () => {
     const { theme } = useAppTheme();
@@ -20,13 +25,15 @@ export const HomeScreen = () => {
     const [continueWatching, setContinueWatching] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Load Trending Data
+    // SideMenu is 100px on TV
+    const TV_LEFT_OFFSET = 100;
+    const HERO_WIDTH = isTV ? width - TV_LEFT_OFFSET : width;
+
     useEffect(() => {
         const loadData = async () => {
             const [movies, tv] = await Promise.all([getTrendingMovies(), getTrendingTV()]);
-
             const format = (data, type) => data?.map(m => ({
-                ...m, // Keep original TMDB object for the player
+                ...m,
                 id: m.id,
                 title: m.title || m.name,
                 image: `${IMAGE_PATH}${m.poster_path}`,
@@ -42,12 +49,11 @@ export const HomeScreen = () => {
         loadData();
     }, []);
 
-    // Refresh Continue Watching every time screen is focused
     useEffect(() => {
         if (isFocused) {
             const loadHistory = async () => {
                 const history = await getHistory();
-                setContinueWatching(history.slice(0, 10)); // Show last 10 items
+                setContinueWatching(history.slice(0, 10));
             };
             loadHistory();
         }
@@ -66,8 +72,12 @@ export const HomeScreen = () => {
                     keyExtractor={(item, index) => `history-${item.id}-${index}`}
                     contentContainerStyle={{ paddingLeft: 20 }}
                     renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={styles.continueCard}
+                        <Pressable
+                            enablesNextFocusAppearance={true}
+                            style={({ focused }) => [
+                                styles.continueCard,
+                                focused && styles.tvFocusBorder
+                            ]}
                             onPress={() => navigation.navigate('Player', {
                                 id: item.id,
                                 type: item.type,
@@ -81,7 +91,7 @@ export const HomeScreen = () => {
                                 style={styles.continueImage}
                             />
                             <LinearGradient
-                                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                                colors={['transparent', 'rgba(0,0,0,0.9)']}
                                 style={styles.continueGradient}
                             >
                                 <Text style={styles.continueTitle} numberOfLines={1}>
@@ -91,7 +101,7 @@ export const HomeScreen = () => {
                                     <Text style={styles.continueSubtitle}>S{item.season} E{item.episode}</Text>
                                 )}
                             </LinearGradient>
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 />
             </View>
@@ -122,55 +132,100 @@ export const HomeScreen = () => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            {/* TopBar is always present but offset via its own internal logic for TV */}
             <TopBar />
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <ImageBackground source={{ uri: hero?.backdrop }} style={styles.hero}>
-                    <LinearGradient colors={['transparent', 'rgba(15,15,15,0.5)', '#0F0F0F']} style={styles.heroGradient}>
-                        <Text style={styles.heroTitle}>{hero?.title?.toUpperCase()}</Text>
+
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={[
+                    isTV && { paddingLeft: TV_LEFT_OFFSET }
+                ]}
+            >
+                <ImageBackground
+                    source={{ uri: hero?.backdrop }}
+                    style={[styles.hero, { width: HERO_WIDTH }, isTV && styles.heroTV]}
+                >
+                    <LinearGradient
+                        colors={['transparent', 'rgba(15,15,15,0.4)', '#0F0F0F']}
+                        style={[styles.heroGradient, isTV && { paddingLeft: 40 }]}
+                    >
+                        <Text style={[styles.heroTitle, isTV && styles.heroTitleTV]}>
+                            {hero?.title?.toUpperCase()}
+                        </Text>
                         <View style={styles.heroButtons}>
-                            <Button
-                                mode="contained"
-                                icon="play"
-                                style={styles.playButton}
+                            <Pressable
+                                hasTVPreferredFocus={true}
+                                style={({ focused }) => [
+                                    styles.playButtonAction,
+                                    focused && { transform: [{ scale: 1.1 }], zIndex: 10 }
+                                ]}
                                 onPress={() => navigation.navigate('Player', {
                                     id: hero.id,
                                     type: 'movie',
                                     item: hero
                                 })}
                             >
-                                Play
-                            </Button>
-                            <IconButton icon="plus" mode="outlined" iconColor="white" />
+                                <Button
+                                    mode="contained"
+                                    icon="play"
+                                    contentStyle={isTV && { height: 60, width: 160 }}
+                                    labelStyle={isTV && { fontSize: 20 }}
+                                >
+                                    Play
+                                </Button>
+                            </Pressable>
+
+                            <IconButton
+                                icon="plus"
+                                mode="outlined"
+                                iconColor="white"
+                                style={[styles.heroIconBtn, isTV && { transform: [{ scale: 1.4 }], marginLeft: 30 }]}
+                            />
                         </View>
                     </LinearGradient>
                 </ImageBackground>
 
-                {/* INSERTED: Continue Watching Row */}
-                {renderContinueWatching()}
-
-                {renderSection('Trending Movies', trendingMovies)}
-                {renderSection('Trending TV Shows', trendingTV)}
+                <View style={styles.contentWrapper}>
+                    {renderContinueWatching()}
+                    {renderSection('Trending Movies', trendingMovies)}
+                    {renderSection('Trending TV Shows', trendingTV)}
+                </View>
 
                 <View style={{ height: 120 }} />
             </ScrollView>
-            <BottomNav />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    hero: { width: '100%', height: 450, justifyContent: 'flex-end' },
-    heroGradient: { height: '60%', justifyContent: 'flex-end', padding: 20 },
+    contentWrapper: { marginTop: isTV ? -40 : 0 }, // Pull content slightly into hero gradient on TV
+    hero: { height: 450, justifyContent: 'flex-end' },
+    heroTV: { height: 650 },
+    heroGradient: { height: '80%', justifyContent: 'flex-end', padding: 20 },
     heroTitle: { fontSize: 28, fontWeight: '900', color: 'white', textAlign: 'center', marginBottom: 15 },
-    heroButtons: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-    playButton: { flex: 0.6, borderRadius: 8 },
-    section: { marginTop: 25 },
+    heroTitleTV: { fontSize: 64, textAlign: 'left', marginBottom: 30, width: '70%', lineHeight: 70 },
+    heroButtons: { flexDirection: 'row', justifyContent: isTV ? 'flex-start' : 'center', alignItems: 'center', marginBottom: 20 },
+    playButtonAction: { borderRadius: 8, overflow: 'visible' },
+    heroIconBtn: { borderColor: 'white', borderWidth: 1 },
+    section: { marginTop: 30 },
     sectionTitle: { fontSize: 20, fontWeight: '900', marginLeft: 20, marginBottom: 15 },
-    // Styles for Continue Watching
-    continueCard: { width: 220, height: 125, marginRight: 15, borderRadius: 10, overflow: 'hidden', backgroundColor: '#1a1a1a' },
-    continueImage: { width: '100%', height: '100%' },
-    continueGradient: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 10 },
-    continueTitle: { color: 'white', fontWeight: 'bold', fontSize: 14 },
-    continueSubtitle: { color: '#E91E63', fontSize: 11, fontWeight: 'bold' }
+    tvFocusBorder: {
+        borderWidth: 4,
+        borderColor: '#E91E63',
+        transform: [{ scale: 1.1 }],
+        zIndex: 10,
+    },
+    continueCard: {
+        width: isTV ? 350 : 220,
+        height: isTV ? 200 : 125,
+        marginRight: 20,
+        borderRadius: 12,
+        overflow: 'hidden',
+        backgroundColor: '#1a1a1a'
+    },
+    continueImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+    continueGradient: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', padding: 15 },
+    continueTitle: { color: 'white', fontWeight: 'bold', fontSize: isTV ? 20 : 14 },
+    continueSubtitle: { color: '#E91E63', fontSize: isTV ? 14 : 11, fontWeight: 'bold', marginTop: 4 }
 });

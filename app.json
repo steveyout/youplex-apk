@@ -3,12 +3,8 @@
     "name": "Youplex",
     "slug": "youplex-apk",
     "version": "1.0.1",
-    "extra": {
-      "eas": {
-        "projectId": "44f09ad8-a557-4c72-b030-ac02a4088981"
-      }
-    },
-    "orientation": "portrait",
+    "owner": "steveyout",
+    "orientation": "default",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "dark",
     "splash": {
@@ -20,34 +16,47 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "cc.youplex.movies",
+      "versionCode": 26,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#000000"
       },
-      "versionCode": 24,
-      "package": "cc.youplex.movies",
-      "googleServicesFile": "./google-services.json"
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "isTV": true,
+      "banner": "./assets/logo-tv.png",
+      "softwareLeanback": true,
+      "intentFilters": [
+        {
+          "action": "MAIN",
+          "category": [
+            "LAUNCHER",
+            "LEANBACK_LAUNCHER"
+          ]
+        }
+      ],
+      "config": {
+        "keyboard": true
+      }
     },
     "plugins": [
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "./withInfatica"
     ],
     "androidNavigationBar": {
       "visible": "sticky-immersive",
       "backgroundColor": "#000000",
       "barStyle": "light-content"
     },
-    "web": {
-      "favicon": "./assets/logo.png"
-    },
-    "owner": "steveyout"
-  },
-  "build": {
-    "preview": {
-      "android": {
-        "buildType": "apk",
-        "credentialsSource": "remote"
+    "extra": {
+      "eas": {
+        "projectId": "44f09ad8-a557-4c72-b030-ac02a4088981"
       }
-    },
-    "production": {}
+    }
   }
 }

@@ -1,9 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+    View,
+    Text,
+    FlatList,
+    Image,
+    Pressable,
+    StyleSheet,
+    Platform,
+    Dimensions
+} from 'react-native';
 import { getHistory, clearHistory } from '../services/historyService';
 import { useNavigation } from '@react-navigation/native';
+import { useAppTheme } from '../theme/ThemeContext';
+import { Trash2, Clock } from 'lucide-react-native';
+import { TopBar } from '../components/TopBar'; // Added TopBar
+import { isTV } from '../utils/device';
+
+const { width } = Dimensions.get('window');
 
 export const HistoryScreen = () => {
+    const { theme } = useAppTheme();
     const [history, setHistory] = useState([]);
     const navigation = useNavigation();
 
@@ -21,11 +37,17 @@ export const HistoryScreen = () => {
     };
 
     const renderItem = ({ item }) => {
-        const isTV = item.type === 'tv' || item.season;
+        const isShow = item.type === 'tv' || item.season;
 
         return (
-            <TouchableOpacity
-                style={styles.card}
+            <Pressable
+                // TV Navigation: ensures focus can move to the SideMenu
+                enablesNextFocusAppearance={true}
+                style={({ focused }) => [
+                    styles.card,
+                    { backgroundColor: theme.colors.elevation.level2 },
+                    focused && styles.tvFocusBorder
+                ]}
                 onPress={() => navigation.navigate('Player', {
                     id: item.id,
                     type: item.type,
@@ -35,61 +57,146 @@ export const HistoryScreen = () => {
                 })}
             >
                 <Image
-                    source={{ uri: `https://image.tmdb.org/t/p/w200${item.poster_path}` }}
+                    source={{ uri: `https://image.tmdb.org/t/p/w300${item.poster_path}` }}
                     style={styles.poster}
                 />
                 <View style={styles.info}>
-                    <Text style={styles.title} numberOfLines={1}>
+                    <Text style={[styles.title, { color: theme.colors.onSurface }]} numberOfLines={1}>
                         {item.title || item.name}
                     </Text>
 
-                    {isTV && (
+                    {isShow && (
                         <View style={styles.episodeBadge}>
                             <Text style={styles.episodeText}>
-                                Season {item.season} • Episode {item.episode}
+                                S{item.season} • E{item.episode}
                             </Text>
                         </View>
                     )}
 
-                    <Text style={styles.date}>
-                        Watched: {new Date(item.watchedAt).toLocaleDateString()}
-                    </Text>
+                    <View style={styles.dateRow}>
+                        <Clock size={isTV ? 16 : 12} color={theme.colors.outline} />
+                        <Text style={[styles.date, { color: theme.colors.outline }]}>
+                            {new Date(item.watchedAt).toLocaleDateString()}
+                        </Text>
+                    </View>
                 </View>
-            </TouchableOpacity>
+            </Pressable>
         );
     };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Watch History</Text>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            {/* Added TopBar to keep UI consistent */}
+            <TopBar />
+
+            <View style={[styles.header, isTV && styles.headerTV]}>
+                <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
+                    Watch History
+                </Text>
+
                 {history.length > 0 && (
-                    <TouchableOpacity onPress={handleClear}>
-                        <Text style={styles.clearBtn}>Clear All</Text>
-                    </TouchableOpacity>
+                    <Pressable
+                        onPress={handleClear}
+                        style={({ focused }) => [
+                            styles.clearBtnWrapper,
+                            focused && styles.clearFocus
+                        ]}
+                    >
+                        <Trash2 size={isTV ? 28 : 18} color="#ff4444" />
+                        <Text style={[styles.clearBtn, isTV && { fontSize: 20 }]}>Clear All</Text>
+                    </Pressable>
                 )}
             </View>
 
             <FlatList
                 data={history}
-                keyExtractor={(item) => item.watchedAt}
+                keyExtractor={(item) => item.watchedAt.toString()}
                 renderItem={renderItem}
-                ListEmptyComponent={<Text style={styles.empty}>No history yet.</Text>}
-                contentContainerStyle={{ paddingBottom: 20 }}
+                ListEmptyComponent={
+                    <View style={styles.emptyWrapper}>
+                        <Clock size={isTV ? 100 : 64} color={theme.colors.outline} strokeWidth={1} />
+                        <Text style={[styles.empty, { color: theme.colors.outline }]}>
+                            Your watch history is empty.
+                        </Text>
+                    </View>
+                }
+                contentContainerStyle={[
+                    styles.listContent,
+                    isTV && styles.listContentTV
+                ]}
+                numColumns={isTV ? 2 : 1}
+                key={isTV ? 'tv-history-grid' : 'mobile-history-list'}
             />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000', padding: 15 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, marginTop: 40 },
-    headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-    clearBtn: { color: '#ff4444', fontWeight: 'bold' },
-    card: { flexDirection: 'row', marginBottom: 15, backgroundColor: '#1a1a1a', borderRadius: 8, overflow: 'hidden' },
-    poster: { width: 80, height: 110 },
-    info: { padding: 10, justifyContent: 'center', flex: 1 },
-    title: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-    date: { color: '#888', fontSize: 12, marginTop: 5 },
-    empty: { color: '#888', textAlign: 'center', marginTop: 50 }
+    container: { flex: 1 },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        // Increased top margin to account for floating TopBar
+        marginTop: isTV ? 130 : (Platform.OS === 'ios' ? 100 : 80),
+        marginBottom: 25
+    },
+    headerTV: {
+        paddingLeft: 120, // Offset for SideMenu (100) + extra breathing room (20)
+        paddingRight: 60
+    },
+    headerTitle: { fontSize: isTV ? 32 : 24, fontWeight: '900' },
+    clearBtnWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        gap: 8,
+        borderRadius: 8
+    },
+    clearFocus: {
+        backgroundColor: 'rgba(255, 68, 68, 0.15)',
+        transform: [{ scale: 1.1 }]
+    },
+    clearBtn: { color: '#ff4444', fontWeight: 'bold', fontSize: 14 },
+    listContent: { paddingHorizontal: 15, paddingBottom: 100 },
+    listContentTV: {
+        paddingLeft: 110, // Match SideMenu offset
+        paddingRight: 40
+    },
+    card: {
+        flexDirection: 'row',
+        marginBottom: 20,
+        borderRadius: 12,
+        overflow: 'hidden',
+        flex: 1,
+        marginHorizontal: isTV ? 10 : 0,
+        elevation: 3
+    },
+    tvFocusBorder: {
+        borderWidth: 3,
+        borderColor: '#E91E63',
+        transform: [{ scale: 1.03 }],
+        zIndex: 10
+    },
+    poster: {
+        width: isTV ? 120 : 80,
+        height: isTV ? 180 : 110,
+        resizeMode: 'cover'
+    },
+    info: { padding: 15, justifyContent: 'center', flex: 1 },
+    title: { fontSize: isTV ? 22 : 16, fontWeight: 'bold' },
+    episodeBadge: {
+        backgroundColor: 'rgba(233, 30, 99, 0.15)',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+        marginTop: 10
+    },
+    episodeText: { color: '#E91E63', fontSize: 14, fontWeight: 'bold' },
+    dateRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+    date: { fontSize: isTV ? 14 : 12 },
+    emptyWrapper: { flex: 1, alignItems: 'center', marginTop: 150 },
+    empty: { textAlign: 'center', marginTop: 20, fontSize: isTV ? 22 : 16 }
 });

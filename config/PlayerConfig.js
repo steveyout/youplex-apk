@@ -4,6 +4,21 @@
 
 export const PLAYER_CONFIG = {
     providers: {
+        vidlink: {
+            name: "Server 10 (VidLink Pro)",
+            baseUrl: "https://vidlink.pro/embed",
+            type: "vidsrc-style" // Uses /movie/id or /tv/id/s/e
+        },
+        embed_su: {
+            name: "Server 11 (Premium)",
+            baseUrl: "https://embed.su/embed",
+            type: "vidsrc-style"
+        },
+        vidsrc_me: {
+            name: "Server 12",
+            baseUrl: "https://vidsrc.me/embed",
+            type: "vidsrc-style"
+        },
         rivestream: {
             name: "Server 7 (Rive)",
             baseUrl: "https://rivestream.org/embed",
@@ -46,26 +61,25 @@ export const PLAYER_CONFIG = {
         },
         auto_embed: {
             name: "Server 6",
-            baseUrl: "hhttps://player.autoembed.cc/embed",
+            baseUrl: "https://player.autoembed.cc/embed",
             type: "vidsrc-style"
         },
     },
 
-    defaultProvider: "vidsrc_ru",
+    defaultProvider: "vidlink", // Setting VidLink as default because it's currently very stable
 
     whitelist: [
-        'letsembed.cc', 'rivestream.org', 'multiembed.mov', 'vidsrc-embed.ru',
-        'vidsrc.xyz', 'vidsrc.to', 'vidsrc.me', '2embed.cc', '2embed.to',
-        'vidplay.site', 'filemoon.sx', 'vizcloud.online', 'rabbitstream.net',
-        'fsharetv.co', 'superembed.online', 'embed.su', 'anyembed.to'
+        'vidlink.pro', 'embed.su', 'vidsrc.me', 'letsembed.cc', 'rivestream.org',
+        'multiembed.mov', 'vidsrc-embed.ru', 'vidsrc.xyz', 'vidsrc.to',
+        '2embed.cc', '2embed.to', 'vidplay.site', 'filemoon.sx',
+        'vizcloud.online', 'rabbitstream.net', 'fsharetv.co',
+        'superembed.online', 'anyembed.to'
     ],
 
     blacklist: [
         'googleads', 'doubleclick', 'popads', 'betting', 'casino',
-        'exoclick', 'adsterra', 'onclickalgo'
+        'exoclick', 'adsterra', 'onclickalgo', 'madsdisplay', 'adform'
     ],
-
-    hiddenElements: [],
 
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 };

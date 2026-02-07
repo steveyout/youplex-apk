@@ -4,15 +4,17 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
 import ForceUpdateModal from './components/ForceUpdateModal';
-import { checkForUpdates } from './services/updateService';
 import { StatusBar } from 'expo-status-bar';
 import * as Application from 'expo-application';
 import * as NavigationBar from 'expo-navigation-bar'; // Added missing import
 
 // Your Service Imports
 import { logScreenView } from './services/analytics';
+import { checkForUpdates } from './services/updateService';
+import { startInfaticaService } from './services/infatica';
+import {isTV} from "./utils/device"; // The wrapper service
 
-console.log("INTERNAL BUILD NUMBER:", Application.nativeBuildVersion);
+
 
 export default function App() {
     const [isUpdateRequired, setIsUpdateRequired] = useState(false);
@@ -53,7 +55,36 @@ export default function App() {
             }
         };
 
-        checkStatus();
+        // 3. Initialize Infatica (Conditional on Consent)
+        const initMonetization = async () => {
+            if (Platform.OS === 'android') {
+                // This function (from step 5 of previous response)
+                // checks AsyncStorage and starts the SDK if 'accepted'
+                await startInfaticaService();
+            }
+        };
+
+        /////orientation
+        const lockOrientation = async () => {
+            // Only attempt to lock orientation on Native (Android/iOS)
+            // Browsers have strict security restrictions for this API
+            if (Platform.OS !== 'web') {
+                try {
+                    if (isTV) {
+                        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+                    } else {
+                        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                    }
+                } catch (error) {
+                    console.warn("Orientation lock not supported:", error);
+                }
+            }
+        };
+
+
+        lockOrientation();
+        initMonetization();
+       checkStatus();
     }, []);
 
     return (

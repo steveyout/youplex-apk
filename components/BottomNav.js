@@ -5,15 +5,18 @@ import { Text, TouchableRipple, FAB } from 'react-native-paper';
 import { Film, Search, History, Tv } from 'lucide-react-native';
 import { useAppTheme } from '../theme/ThemeContext';
 
+import { isTV } from '../utils/device';
+
 export const BottomNav = ({ state, navigation }) => {
     const { theme, isDarkMode } = useAppTheme();
 
-    if (!state || !state.routes) return null;
-    // 1. GET THE ACTIVE TAB
+    // --- TV CHECK ---
+    // On TV, we hide the BottomNav entirely to maintain a cinematic look.
+    // Navigation on TV is handled via the TopBar or Side Menu.
+    if (isTV || !state || !state.routes) return null;
+
     const currentTab = state.routes[state.index];
 
-    // 2. CHECK IF PLAYER IS ACTIVE IN THE NESTED STACK
-    // In a Stack inside a Tab, the stack state is found in currentTab.state
     const getActiveRouteName = (route) => {
         if (!route.state) return route.name;
         const routeState = route.state;
@@ -22,12 +25,9 @@ export const BottomNav = ({ state, navigation }) => {
 
     const activeRouteName = getActiveRouteName(currentTab);
 
-    // 3. HIDE NAV IF ON PLAYER SCREEN
-    if (activeRouteName === 'Player') {
-        return null;
-    }
+    // Hide on Player Screen
+    if (activeRouteName === 'Player') return null;
 
-    // We assume index 0 is your Home/Movies screen
     const isHomeFocused = state.index === 0;
 
     const NavItem = ({ Icon, label, index }) => {
@@ -37,13 +37,23 @@ export const BottomNav = ({ state, navigation }) => {
             navigation.navigate(route.name);
         };
 
-        // If index is 0, we might want to hide the label or change behavior
-        // since the FAB handles the "Home" action now.
         return (
-            <TouchableRipple onPress={onPress} style={styles.navItem} borderless>
+            <TouchableRipple
+                onPress={onPress}
+                style={styles.navItem}
+                borderless
+                rippleColor="rgba(233, 30, 99, 0.1)"
+            >
                 <View style={{ alignItems: 'center' }}>
-                    <Icon size={20} color={isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant} />
-                    <Text style={[styles.label, { color: isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant }]}>
+                    <Icon
+                        size={20}
+                        strokeWidth={isFocused ? 2.5 : 2}
+                        color={isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                    />
+                    <Text style={[
+                        styles.label,
+                        { color: isFocused ? theme.colors.primary : theme.colors.onSurfaceVariant }
+                    ]}>
                         {label}
                     </Text>
                 </View>
@@ -53,15 +63,16 @@ export const BottomNav = ({ state, navigation }) => {
 
     return (
         <View style={styles.wrapper}>
-            {/* The FAB now navigates to the first route (Home) and changes color when active */}
+            {/* Centered Action FAB */}
             <FAB
                 icon="play"
                 color="white"
+                customSize={56}
                 style={[
                     styles.fab,
                     {
                         backgroundColor: isHomeFocused ? theme.colors.primary : theme.colors.secondary,
-                        transform: [{ scale: isHomeFocused ? 1.1 : 1 }] // Slight scale up when active
+                        transform: [{ scale: isHomeFocused ? 1.1 : 1 }]
                     }
                 ]}
                 onPress={() => {
@@ -73,16 +84,22 @@ export const BottomNav = ({ state, navigation }) => {
             <BlurView
                 intensity={80}
                 tint={isDarkMode ? 'dark' : 'light'}
-                style={[styles.container, { borderColor: theme.colors.outlineVariant }]}
+                style={[
+                    styles.container,
+                    {
+                        borderColor: theme.colors.outlineVariant,
+                        backgroundColor: isDarkMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'
+                    }
+                ]}
             >
-                {/* We keep the items, but the FAB acts as the primary "Play/Home" trigger */}
-                <NavItem Icon={Film} label="MOVIES" index={1} />
-                <NavItem Icon={Search} label="SEARCH" index={2} />
+                <NavItem Icon={Film} label="Movies" index={1} />
+                <NavItem Icon={Search} label="Search" index={2} />
 
+                {/* Spacer for the FAB */}
                 <View style={styles.spacer} />
 
-                <NavItem Icon={History} label="HISTORY" index={3} />
-                <NavItem Icon={Tv} label="TV" index={4} />
+                <NavItem Icon={History} label="History" index={3} />
+                <NavItem Icon={Tv} label="Tv" index={4} />
             </BlurView>
         </View>
     );
@@ -91,31 +108,42 @@ export const BottomNav = ({ state, navigation }) => {
 const styles = StyleSheet.create({
     wrapper: {
         position: 'absolute',
-        bottom: 25,
+        bottom: Platform.OS === 'ios' ? 35 : 20, // Adjusted for iOS home indicator
         width: Platform.OS === 'web' ? 420 : '92%',
         alignSelf: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        zIndex: 1000,
     },
     container: {
         width: '100%',
-        height: 70,
-        borderRadius: 35,
+        height: 64,
+        borderRadius: 32,
         flexDirection: 'row',
         overflow: 'hidden',
-        borderWidth: 1
+        borderWidth: 1,
+        elevation: 4,
     },
     fab: {
         position: 'absolute',
-        top: -30, // Adjusted slightly higher to look more "floating"
-        zIndex: 10,
-        borderRadius: 30,
-        elevation: 8,
+        top: -28,
+        zIndex: 1010,
+        borderRadius: 28,
+        elevation: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4.65,
+        shadowOpacity: 0.4,
+        shadowRadius: 5,
     },
-    navItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    spacer: { flex: 0.8 },
-    label: { fontSize: 9, marginTop: 4, fontWeight: '800' }
+    navItem: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    spacer: { flex: 0.7 },
+    label: {
+        fontSize: 8,
+        marginTop: 4,
+        fontWeight: '900',
+        letterSpacing: 0.5
+    }
 });
