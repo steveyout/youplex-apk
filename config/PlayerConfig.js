@@ -66,7 +66,7 @@ export const PLAYER_CONFIG = {
         },
     },
 
-    defaultProvider: "vidlink", // Setting VidLink as default because it's currently very stable
+    defaultProvider: "vidsrc_ru", // Setting VidLink as default because it's currently very stable
 
     whitelist: [
         'vidlink.pro', 'embed.su', 'vidsrc.me', 'letsembed.cc', 'rivestream.org',
