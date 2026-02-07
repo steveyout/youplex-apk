@@ -6,7 +6,7 @@ export const PLAYER_CONFIG = {
     providers: {
         vidlink: {
             name: "Server 10 (VidLink Pro)",
-            baseUrl: "https://vidlink.pro/embed",
+            baseUrl: "https://vidlink.pro",
             type: "vidsrc-style" // Uses /movie/id or /tv/id/s/e
         },
         embed_su: {
