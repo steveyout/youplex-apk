@@ -15,65 +15,80 @@ export const PLAYER_CONFIG = {
             baseUrl: "https://vidsrc.to/embed",
             type: "vidsrc-style"
         },
+        vidnest: {
+            name: "Server 3 (VidNest)",
+            baseUrl: "https://vidnest.fun",
+            type: "vidsrc-style"
+        },
+        vidfast: {
+            name: "Server 3 (VidFast)",
+            baseUrl: "https://vidfast.net",
+            type: "vidsrc-style"
+        },
+        videasy: {
+            name: "Server 3 (VidEasy)",
+            baseUrl: "https://player.videasy.net",
+            type: "vidsrc-style"
+        },
         vidsrc_me: {
-            name: "Server 3",
+            name: "Server 4",
             baseUrl: "https://vidsrc.me/embed",
             type: "vidsrc-style"
         },
         embed_su: {
-            name: "Server 4 (Premium)",
+            name: "Server 5 (Premium)",
             baseUrl: "https://embed.su/embed",
             type: "vidsrc-style"
         },
 
         // --- SECONDARY SERVERS ---
         rivestream: {
-            name: "Server 5 (Rive)",
+            name: "Server 6 (Rive)",
             baseUrl: "https://rivestream.org/embed",
             type: "rivestream-style"
         },
         letsembed: {
-            name: "Server 6 (Lets)",
+            name: "Server 7 (Lets)",
             baseUrl: "https://letsembed.cc/embed",
             type: "letsembed-style"
         },
         multiembed: {
-            name: "Server 7 (Multi)",
+            name: "Server 8 (Multi)",
             baseUrl: "https://multiembed.mov/",
             type: "multiembed-style"
         },
         vidsrc_ru: {
-            name: "Server 8",
+            name: "Server 9",
             baseUrl: "https://vidsrc-embed.ru/embed",
             type: "vidsrc-style"
         },
         vidsrc_xyz: {
-            name: "Server 9",
+            name: "Server 10",
             baseUrl: "https://vidsrc.xyz/embed",
             type: "vidsrc-style"
         },
         superembed: {
-            name: "Server 10",
+            name: "Server 11",
             baseUrl: "https://multiembed.mov/directstream.php?video_id=",
             type: "tmdb-param"
         },
         two_embed: {
-            name: "Server 11",
+            name: "Server 12",
             baseUrl: "https://www.2embed.cc/embed",
             type: "vidsrc-style"
         },
         auto_embed: {
-            name: "Server 12",
+            name: "Server 13",
             baseUrl: "https://player.autoembed.cc/embed",
             type: "vidsrc-style"
         },
     },
 
-    // Updated default to the top priority server
-    defaultProvider: "vidlink",
+    // Defaulting to the top priority server
+    defaultProvider: "videasy",
 
     whitelist: [
-        'vidlink.pro', 'embed.su', 'vidsrc.me', 'letsembed.cc', 'rivestream.org',
+        'vidlink.pro', 'vidnest.fun', 'embed.su', 'vidsrc.me', 'letsembed.cc', 'rivestream.org',
         'multiembed.mov', 'vidsrc-embed.ru', 'vidsrc.xyz', 'vidsrc.to',
         '2embed.cc', '2embed.to', 'vidplay.site', 'filemoon.sx',
         'vizcloud.online', 'rabbitstream.net', 'fsharetv.co',

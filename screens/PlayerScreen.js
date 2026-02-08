@@ -30,11 +30,23 @@ export const PlayerScreen = ({ route, navigation }) => {
     const timerRef = useRef(null);
     const webViewRef = useRef(null);
 
+    // Track the intended URL to compare against hijacks
+    const getEmbedUrl = () => {
+        const provider = PLAYER_CONFIG.providers[activeProvider];
+        const base = provider.baseUrl;
+        switch (provider.type) {
+            case "letsembed-style": return type === 'movie' ? `${base}/movie/?id=${id}` : `${base}/tv/?id=${id}/${season}/${episode}`;
+            case "multiembed-style": return type === 'movie' ? `${base}?video_id=${id}&tmdb=1` : `${base}?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
+            case "rivestream-style": return type === 'movie' ? `${base}?type=movie&id=${id}` : `${base}?type=tv&id=${id}&season=${season}&episode=${episode}`;
+            case "vidsrc-style": return type === 'movie' ? `${base}/movie/${id}` : `${base}/tv/${id}/${season}/${episode}`;
+            case "tmdb-param": return type === 'movie' ? `${base}${id}&tmdb=1` : `${base}${id}${season}&e=${episode}&tmdb=1`;
+            default: return `${base}/${id}`;
+        }
+    };
+
     const startHideTimer = () => {
         if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-            setShowControls(false);
-        }, isTV ? 8000 : 4000);
+        timerRef.current = setTimeout(() => setShowControls(false), isTV ? 8000 : 4000);
     };
 
     useEffect(() => {
@@ -57,19 +69,6 @@ export const PlayerScreen = ({ route, navigation }) => {
         if (id) recordHistory();
     }, [id, season, episode]);
 
-    const getEmbedUrl = () => {
-        const provider = PLAYER_CONFIG.providers[activeProvider];
-        const base = provider.baseUrl;
-        switch (provider.type) {
-            case "letsembed-style": return type === 'movie' ? `${base}/movie/?id=${id}` : `${base}/tv/?id=${id}/${season}/${episode}`;
-            case "multiembed-style": return type === 'movie' ? `${base}?video_id=${id}&tmdb=1` : `${base}?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
-            case "rivestream-style": return type === 'movie' ? `${base}?type=movie&id=${id}` : `${base}?type=tv&id=${id}&season=${season}&episode=${episode}`;
-            case "vidsrc-style": return type === 'movie' ? `${base}/movie/${id}` : `${base}/tv/${id}/${season}/${episode}`;
-            case "tmdb-param": return type === 'movie' ? `${base}${id}&tmdb=1` : `${base}${id}&s=${season}&e=${episode}&tmdb=1`;
-            default: return `${base}/${id}`;
-        }
-    };
-
     const handleServerSelect = (key) => {
         if (activeProvider === key) {
             setShowControls(false);
@@ -85,70 +84,80 @@ export const PlayerScreen = ({ route, navigation }) => {
         setWebViewKey(prev => prev + 1);
     };
 
+    /**
+     * ANTI-HIJACK NAVIGATION GATEKEEPER
+     */
     const handleNavigationRequest = (request) => {
         const { url, isTopFrame } = request;
-        const currentEmbedUrl = getEmbedUrl();
-        if (url === currentEmbedUrl) return true;
+        const mainUrl = getEmbedUrl();
 
-        const getDomain = (u) => {
-            const matches = u.match(/^https?:\/\/([^/?#]+)/i);
-            return matches && matches[1] ? matches[1].toLowerCase().replace('www.', '') : '';
-        };
+        // 1. Always allow the base embed URL
+        if (url === mainUrl) return true;
 
-        const providerBase = PLAYER_CONFIG.providers[activeProvider].baseUrl;
-        const providerDomain = getDomain(providerBase);
-        const requestDomain = getDomain(url);
-
-        if (url === 'about:blank' || url.startsWith('data:') || url.startsWith('blob:')) return true;
+        // 2. Technical allows
+        if (url === 'about:blank' || url.startsWith('data:')) return true;
 
         if (isTopFrame) {
-            const isSameDomain = requestDomain.endsWith(providerDomain);
-            const isWhitelisted = PLAYER_CONFIG.whitelist.some(d => url.includes(d.toLowerCase()));
+            // STRICT RULE: If the URL doesn't contain our content ID, it's almost certainly a hijack
+            const containsId = url.toLowerCase().includes(id.toString().toLowerCase());
 
-            if (isSameDomain) {
-                const containsId = url.includes(id);
-                const hasPlayerKeywords = /embed|video|player|watch|v=|s=|e=/i.test(url);
-                if (!containsId && !hasPlayerKeywords) return false;
-                return true;
+            // Allow if it's a known player-related path but block if it looks like a site's home/ad page
+            const isKnownPlayerPath = /embed|player|video|watch/i.test(url);
+
+            if (!containsId && !isKnownPlayerPath) {
+                console.log("[AdBlock] BLOCKED Top-Frame Redirect:", url);
+                return false;
             }
-            if (isWhitelisted) return true;
-            return false;
         }
+
+        // Allow sub-frame loads (actual video stream chunks)
         return true;
     };
 
+    /**
+     * JS SANDBOXING
+     * We override 'location' property to make it harder for scripts to redirect.
+     */
     const INJECTED_JS = `
         (function() {
+            // Kill Popups
             window.open = function() { return null; };
             window.alert = function() { return null; };
-            window.onbeforeunload = function() { return null; };
 
+            // Wake up UI on touch
             document.addEventListener('click', () => {
                 window.ReactNativeWebView.postMessage('wake_up');
             }, true);
 
+            // Block scripts from changing the location
+            const originalLocation = window.location.href;
+            Object.defineProperty(window, 'onbeforeunload', {
+                configurable: false,
+                get: function() { return null; },
+                set: function() {}
+            });
+
+            // Ad-Blocking Styles
             const style = document.createElement('style');
             style.innerHTML = \`
                 body { background-color: black !important; }
-                iframe { pointer-events: auto !important; }
-                .ad-layer, .pop-under, #popunder, [id*="pop"], [class*="ad-"], .overlay-ads, #disclaimer { 
-                    display: none !important; 
-                    pointer-events: none !important; 
-                    z-index: -1 !important;
-                    opacity: 0 !important;
+                .ad-layer, .pop-under, [id*="pop"], [class*="ad-"], .overlay-ads, 
+                #disclaimer, .modal-backdrop, .fade.show { 
+                    display: none !important; visibility: hidden !important; 
+                    pointer-events: none !important; z-index: -1 !important;
                 }
             \`;
             document.head.appendChild(style);
 
-            const forcePlay = () => {
+            // Force Video Autoplay & Prevent Pause Ads
+            const checkVideo = () => {
                 const video = document.querySelector('video');
                 if (video) {
                     video.muted = false;
-                    video.play().catch(() => {});
+                    if (video.paused) video.play().catch(() => {});
                 }
             };
-            const pInterval = setInterval(forcePlay, 1000);
-            setTimeout(() => clearInterval(pInterval), 10000);
+            setInterval(checkVideo, 3000);
         })();
         true;
     `;
@@ -156,24 +165,6 @@ export const PlayerScreen = ({ route, navigation }) => {
     const onMessage = (event) => {
         if (event.nativeEvent.data === 'wake_up') setShowControls(true);
     };
-
-    useEffect(() => {
-        if (!showControls && !loading && isTV) {
-            setTimeout(() => webViewRef.current?.requestFocus(), 500);
-        }
-    }, [showControls, loading]);
-
-    useEffect(() => {
-        const backAction = () => {
-            if (!showControls) {
-                setShowControls(true);
-                return true;
-            }
-            return false;
-        };
-        const handler = BackHandler.addEventListener("hardwareBackPress", backAction);
-        return () => handler.remove();
-    }, [showControls]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -193,26 +184,41 @@ export const PlayerScreen = ({ route, navigation }) => {
         }, [])
     );
 
+    useEffect(() => {
+        const backAction = () => {
+            if (!showControls) {
+                setShowControls(true);
+                return true;
+            }
+            return false;
+        };
+        const handler = BackHandler.addEventListener("hardwareBackPress", backAction);
+        return () => handler.remove();
+    }, [showControls]);
+
     return (
         <View style={styles.container}>
             <View style={styles.videoWrapper}>
                 <WebView
                     ref={webViewRef}
                     key={`${activeProvider}-${webViewKey}`}
-                    source={{ uri: getEmbedUrl() }}
-                    // TV: Only focusable when UI is hidden to prevent remote cursor hijacking
+                    source={{ uri: getEmbedUrl(), headers: { 'User-Agent': PLAYER_CONFIG.userAgent } }}
+                    // TV Logic: WebView loses focus when controls are active
                     focusable={!showControls}
                     mediaPlaybackRequiresUserAction={false}
                     allowsInlineMediaPlayback={true}
+                    allowsFullscreenVideo={true}
                     javaScriptEnabled={true}
                     domStorageEnabled={true}
                     setSupportMultipleWindows={false}
-                    style={styles.webview}
+                    onShouldStartLoadWithRequest={handleNavigationRequest}
                     injectedJavaScript={INJECTED_JS}
                     onMessage={onMessage}
-                    onShouldStartLoadWithRequest={handleNavigationRequest}
                     onLoadStart={() => setLoading(true)}
                     onLoadEnd={() => setLoading(false)}
+                    style={styles.webview}
+                    // Prevent common TV "Deep Link" hijacks
+                    originWhitelist={['*']}
                 />
             </View>
 
@@ -228,12 +234,9 @@ export const PlayerScreen = ({ route, navigation }) => {
                     <View style={styles.topBar} pointerEvents="box-none">
                         <Pressable
                             focusable={true}
-                            hasTVPreferredFocus={true} // Auto-focus this when UI opens
+                            hasTVPreferredFocus={true}
                             onPress={() => navigation.goBack()}
-                            style={({ focused }) => [
-                                styles.closeBtn,
-                                focused && styles.tvFocusBorder
-                            ]}
+                            style={({ focused }) => [styles.closeBtn, focused && styles.tvFocusBorder]}
                         >
                             <X color="white" size={isTV ? 32 : 24} />
                         </Pressable>
@@ -254,11 +257,7 @@ export const PlayerScreen = ({ route, navigation }) => {
 
                             <Server color="white" size={16} />
 
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.serverList}
-                            >
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.serverList}>
                                 {Object.keys(PLAYER_CONFIG.providers).map((key) => (
                                     <Pressable
                                         key={key}
@@ -305,12 +304,9 @@ const styles = StyleSheet.create({
     serverBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.1)' },
     serverBtnActive: { backgroundColor: '#E91E63' },
     serverBtnLabel: { color: 'white', fontSize: 12 },
-    // Improved TV focus visibility
     tvFocusBorder: {
-        borderWidth: 3,
-        borderColor: '#E91E63',
-        backgroundColor: 'rgba(233, 30, 99, 0.2)',
-        borderRadius: 12
+        borderWidth: 3, borderColor: '#E91E63',
+        backgroundColor: 'rgba(233, 30, 99, 0.2)', borderRadius: 12
     },
     loading: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', backgroundColor: 'black', zIndex: 100 },
 });

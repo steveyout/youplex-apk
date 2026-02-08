@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "cc.youplex.movies",
-      "versionCode": 30,
+      "versionCode": 31,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
