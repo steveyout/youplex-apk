@@ -4,69 +4,73 @@
 
 export const PLAYER_CONFIG = {
     providers: {
+        // --- TOP PRIORITY SERVERS ---
         vidlink: {
-            name: "Server 10 (VidLink Pro)",
+            name: "Server 1 (VidLink Pro)",
             baseUrl: "https://vidlink.pro",
-            type: "vidsrc-style" // Uses /movie/id or /tv/id/s/e
+            type: "vidsrc-style"
         },
-        embed_su: {
-            name: "Server 11 (Premium)",
-            baseUrl: "https://embed.su/embed",
+        vidsrc_to: {
+            name: "Server 2 (VIP)",
+            baseUrl: "https://vidsrc.to/embed",
             type: "vidsrc-style"
         },
         vidsrc_me: {
-            name: "Server 12",
+            name: "Server 3",
             baseUrl: "https://vidsrc.me/embed",
             type: "vidsrc-style"
         },
+        embed_su: {
+            name: "Server 4 (Premium)",
+            baseUrl: "https://embed.su/embed",
+            type: "vidsrc-style"
+        },
+
+        // --- SECONDARY SERVERS ---
         rivestream: {
-            name: "Server 7 (Rive)",
+            name: "Server 5 (Rive)",
             baseUrl: "https://rivestream.org/embed",
             type: "rivestream-style"
         },
         letsembed: {
-            name: "Server 9 (Lets)",
+            name: "Server 6 (Lets)",
             baseUrl: "https://letsembed.cc/embed",
             type: "letsembed-style"
         },
         multiembed: {
-            name: "Server 8 (Multi)",
+            name: "Server 7 (Multi)",
             baseUrl: "https://multiembed.mov/",
             type: "multiembed-style"
         },
         vidsrc_ru: {
-            name: "Server 1",
+            name: "Server 8",
             baseUrl: "https://vidsrc-embed.ru/embed",
             type: "vidsrc-style"
         },
         vidsrc_xyz: {
-            name: "Server 2",
+            name: "Server 9",
             baseUrl: "https://vidsrc.xyz/embed",
             type: "vidsrc-style"
         },
-        vidsrc_to: {
-            name: "Server 3 (VIP)",
-            baseUrl: "https://vidsrc.to/embed",
-            type: "vidsrc-style"
-        },
         superembed: {
-            name: "Server 4",
+            name: "Server 10",
             baseUrl: "https://multiembed.mov/directstream.php?video_id=",
             type: "tmdb-param"
         },
         two_embed: {
-            name: "Server 5",
+            name: "Server 11",
             baseUrl: "https://www.2embed.cc/embed",
             type: "vidsrc-style"
         },
         auto_embed: {
-            name: "Server 6",
+            name: "Server 12",
             baseUrl: "https://player.autoembed.cc/embed",
             type: "vidsrc-style"
         },
     },
 
-    defaultProvider: "vidsrc_ru", // Setting VidLink as default because it's currently very stable
+    // Updated default to the top priority server
+    defaultProvider: "vidlink",
 
     whitelist: [
         'vidlink.pro', 'embed.su', 'vidsrc.me', 'letsembed.cc', 'rivestream.org',
