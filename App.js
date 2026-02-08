@@ -83,7 +83,7 @@ export default function App() {
 
 
         lockOrientation();
-        initMonetization();
+        //initMonetization();
        checkStatus();
     }, []);
 
