@@ -1,7 +1,0 @@
-{
-  "platforms": ["android"],
-  "android": {
-    "package": "expo.modules.infatica",
-    "modules": ["InfaticaModule"]
-  }
-}

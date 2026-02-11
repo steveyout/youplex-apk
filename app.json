@@ -45,8 +45,7 @@
       }
     },
     "plugins": [
-      "@react-native-firebase/app",
-      "./withInfatica"
+      "@react-native-firebase/app"
     ],
     "androidNavigationBar": {
       "visible": "sticky-immersive",

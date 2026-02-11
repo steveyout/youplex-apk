@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native'; // Added missing import
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
 import ForceUpdateModal from './components/ForceUpdateModal';
 import { StatusBar } from 'expo-status-bar';
-import * as Application from 'expo-application';
-import * as NavigationBar from 'expo-navigation-bar'; // Added missing import
+import * as NavigationBar from 'expo-navigation-bar';
 
 // Your Service Imports
 import { logScreenView } from './services/analytics';
 import { checkForUpdates } from './services/updateService';
-import { startInfaticaService } from './services/infatica';
 import {isTV} from "./utils/device"; // The wrapper service
 
 
@@ -55,14 +53,6 @@ export default function App() {
             }
         };
 
-        // 3. Initialize Infatica (Conditional on Consent)
-        const initMonetization = async () => {
-            if (Platform.OS === 'android') {
-                // This function (from step 5 of previous response)
-                // checks AsyncStorage and starts the SDK if 'accepted'
-                await startInfaticaService();
-            }
-        };
 
         /////orientation
         const lockOrientation = async () => {
@@ -83,7 +73,6 @@ export default function App() {
 
 
         lockOrientation();
-        //initMonetization();
        checkStatus();
     }, []);
 
