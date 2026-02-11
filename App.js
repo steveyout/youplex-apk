@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import {PermissionsAndroid, Platform} from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
@@ -72,22 +72,22 @@ export default function App() {
         };
 
 ///pawns
-        const pawnsSdk = async () => {
-            // Only pass the API Key now
-            const API_KEY = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
-
-            try {
-                PawnsMonetization.start(API_KEY);
-            } catch (e) {
-                console.log("Pawns start error", e);
+        const startPawns = async () => {
+            if (Platform.OS === 'android' && Platform.Version >= 33) {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    console.log("Notification permission denied. Pawns cannot start.");
+                    return;
+                }
             }
 
-            return () => {
-                PawnsMonetization.stop();
-            };
-        }
+            // Now start
+            PawnsMonetization.start(process.env.EXPO_PUBLIC_PAWNS_API_KEY);
+        };
 
-        pawnsSdk();
+        startPawns();
         lockOrientation();
        checkStatus();
     }, []);
