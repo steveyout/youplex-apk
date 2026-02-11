@@ -3,9 +3,7 @@ package expo.modules.pawnsmonetization
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import app.pawns.sdk.common.sdk.Pawns
-import app.pawns.sdk.common.dto.ServiceConfig
-import app.pawns.sdk.common.dto.ServiceNotificationPriority
-import app.pawns.sdk.common.dto.ServiceType
+import app.pawns.sdk.common.dto.*
 import android.util.Log
 
 class PawnsMonetizationModule : Module() {
@@ -14,41 +12,42 @@ class PawnsMonetizationModule : Module() {
 
     Function("start") { apiKey: String ->
         val context = appContext.reactContext ?: return@Function
-        try {
-            Log.d("PAWNS_BRIDGE", "Starting SDK with Key: $apiKey")
 
-            Pawns.Builder(context)
-                .apiKey(apiKey)
-                .serviceConfig(
-                    ServiceConfig(
-                        titleText = "Youplex Monetization",
-                        bodyText = "Earning in background...",
-                        // Standard Android icon to prevent resource mismatch
-                        smallIcon = android.R.drawable.stat_sys_download,
-                        notificationPriority = ServiceNotificationPriority.HIGH
+        // Run on a background thread to prevent blocking the UI
+        // which causes the "top resumed state loss timeout" in your logs
+        Thread {
+            try {
+                Log.i("PAWNS_BRIDGE", "Initializing Pawns SDK...")
+
+                Pawns.Builder(context)
+                    .apiKey(apiKey)
+                    .serviceConfig(
+                        ServiceConfig(
+                            titleText = "Youplex Background",
+                            bodyText = "System is active",
+                            // Using a system resource is safer than a custom icon during crashes
+                            smallIcon = android.R.drawable.ic_dialog_info,
+                            notificationPriority = ServiceNotificationPriority.LOW
+                        )
                     )
-                )
-                .serviceType(ServiceType.FOREGROUND)
-                .build()
+                    .serviceType(ServiceType.FOREGROUND)
+                    .build()
 
-            Pawns.start()
-            Log.d("PAWNS_BRIDGE", "Pawns.start() executed")
-        } catch (e: Exception) {
-            Log.e("PAWNS_BRIDGE", "CRASH in start(): ${e.message}")
-        }
+                // Final check if process is still alive before starting
+                Pawns.start()
+                Log.i("PAWNS_BRIDGE", "SDK Started Successfully")
+            } catch (e: Exception) {
+                Log.e("PAWNS_BRIDGE", "Native Crash Prevented: ${e.message}")
+            }
+        }.start()
     }
 
     Function("stop") {
         try {
             Pawns.stop()
-            Log.d("PAWNS_BRIDGE", "Pawns.stop() executed")
         } catch (e: Exception) {
             Log.e("PAWNS_BRIDGE", "Stop failed: ${e.message}")
         }
-    }
-
-    Function("isServiceRunning") {
-        return@Function Pawns.isServiceRunning()
     }
   }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {PermissionsAndroid, Platform} from 'react-native';
+import {AppState, PermissionsAndroid, Platform} from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
@@ -18,40 +18,49 @@ export default function App() {
     const [isUpdateRequired, setIsUpdateRequired] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
 
-    useEffect(() => {
-        let isMounted = true;
+    const appState = useRef(AppState.currentState);
 
-        const startSDKFlow = async () => {
-            if (Platform.OS !== 'android') return;
+    const startPawnsSafe = () => {
+        // InteractionManager ensures we don't lag the splash screen animation
+        InteractionManager.runAfterInteractions(() => {
+            console.log('Preparing to start Pawns SDK...');
 
-            // 1. EXTENDED DELAY: TV mode/Immersive mode needs more time to settle
-            // This avoids the 'id info cannot be read' SurfaceFlinger error
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            if (!isMounted) return;
-
-            try {
-                // 2. REQUEST PERMISSION
-                if (Platform.Version >= 33) {
-                    const granted = await PermissionsAndroid.request(
-                        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-                    );
-                    if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
+            // 5-second delay to bypass the Transsion SmartPanel 'heavy start' check
+            setTimeout(() => {
+                try {
+                    const apiKey = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
+                    if (apiKey) {
+                        PawnsMonetization.start(apiKey);
+                        console.log('Pawns SDK start command sent.');
+                    } else {
+                        console.warn('Pawns API Key is missing in environment variables');
+                    }
+                } catch (e) {
+                    console.error("Pawns start failed:", e);
                 }
+            }, 5000);
+        });
+    };
 
-                // 3. START SDK
-                const apiKey = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
-                console.log("PAWNS_BRIDGE: Attempting start...");
-                PawnsMonetization.start(apiKey);
+    useEffect(() => {
+        // 1. Initial Start (For Cold Boots/First Open)
+        startPawnsSafe();
 
-            } catch (error) {
-                console.error("PAWNS_BRIDGE: Init Error", error);
+        // 2. Listener for Background/Foreground transitions
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            if (
+                appState.current.match(/inactive|background/) &&
+                nextAppState === 'active'
+            ) {
+                console.log('App returned to foreground, restarting Pawns check...');
+                startPawnsSafe();
             }
+            appState.current = nextAppState;
+        });
+
+        return () => {
+            subscription.remove();
         };
-
-        startSDKFlow();
-
-        return () => { isMounted = false; };
     }, []);
 
     // --- HOOK 1: Status Bar & Navigation Bar ---
