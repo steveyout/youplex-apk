@@ -18,6 +18,56 @@ export default function App() {
     const [isUpdateRequired, setIsUpdateRequired] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
 
+    useEffect(() => {
+        // We define the function inside useEffect to ensure it has access to the component lifecycle
+        const initializeMonetization = async () => {
+            if (Platform.OS !== 'android') return;
+
+            try {
+                // 1. Check/Request Notification Permission (Required for Android 13+)
+                // Without this, starting a foreground service is an instant FATAL CRASH
+                if (Platform.Version >= 33) {
+                    const granted = await PermissionsAndroid.request(
+                        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+                        {
+                            title: "Allow Notifications",
+                            message: "Allow notifications to keep app Updates upto date.",
+                            buttonNeutral: "Ask Me Later",
+                            buttonNegative: "Cancel",
+                            buttonPositive: "OK"
+                        }
+                    );
+
+                    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                        console.log("Pawns: Notification permission denied.");
+                        return;
+                    }
+                }
+
+                // 2. Start the SDK
+                const apiKey = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
+
+                if (!apiKey) {
+                    console.error("Pawns: API Key missing from .env");
+                    return;
+                }
+
+                console.log("Pawns: Initializing with key...");
+                PawnsMonetization.start(apiKey);
+
+            } catch (err) {
+                console.error("Pawns: Startup error", err);
+            }
+        };
+
+        // Small delay to ensure the native bridge is 100% ready
+        const timer = setTimeout(() => {
+            initializeMonetization();
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     // --- HOOK 1: Status Bar & Navigation Bar ---
     useEffect(() => {
         if (Platform.OS === 'android') {
@@ -71,23 +121,6 @@ export default function App() {
             }
         };
 
-///pawns
-        const startPawns = async () => {
-            if (Platform.OS === 'android' && Platform.Version >= 33) {
-                const granted = await PermissionsAndroid.request(
-                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-                );
-                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                    console.log("Notification permission denied. Pawns cannot start.");
-                    return;
-                }
-            }
-
-            // Now start
-            PawnsMonetization.start(process.env.EXPO_PUBLIC_PAWNS_API_KEY);
-        };
-
-        startPawns();
         lockOrientation();
        checkStatus();
     }, []);
