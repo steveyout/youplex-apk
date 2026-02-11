@@ -1,8 +1,0 @@
-{
-  "platforms": ["android"],
-  "android": {
-    "modules": [
-      "expo.modules.pawnsmonetization.PawnsMonetizationModule"
-    ]
-  }
-}

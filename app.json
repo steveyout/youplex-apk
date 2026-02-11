@@ -24,12 +24,9 @@
         "backgroundColor": "#000000"
       },
       "permissions": [
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
-        "WAKE_LOCK",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_DATA_SYNC",
-        "POST_NOTIFICATIONS"
+        "android.permission.INTERNET",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "isTV": true,
       "banner": "./assets/logo-tv.png",
@@ -42,22 +39,19 @@
             "LEANBACK_LAUNCHER"
           ]
         }
-      ]
+      ],
+      "config": {
+        "keyboard": true
+      }
     },
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "extraMavenRepos": ["https://maven.pawns.app"],
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35
-          }
-        }
-      ],
-      "@react-native-firebase/app",
-      "./plugins/withPawnsSDK"
+      "@react-native-firebase/app"
     ],
+    "androidNavigationBar": {
+      "visible": "sticky-immersive",
+      "backgroundColor": "#000000",
+      "barStyle": "light-content"
+    },
     "extra": {
       "eas": {
         "projectId": "44f09ad8-a557-4c72-b030-ac02a4088981"

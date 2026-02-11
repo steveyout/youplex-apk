@@ -63,7 +63,7 @@ jobs:
           EXPO_PUBLIC_GITHUB_PAT: ${{ secrets.GH_PAT }}
         run: |
           # 1. Generate native android directory
-          npx expo prebuild --clean --platform android --no-install
+          npx expo prebuild --platform android --no-install
           
           # 2. Force inject the version into the native gradle file
           sed -i 's/versionCode [0-9]*/versionCode ${{ github.run_number }}/g' android/app/build.gradle

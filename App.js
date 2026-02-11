@@ -18,51 +18,6 @@ export default function App() {
     const [isUpdateRequired, setIsUpdateRequired] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
 
-    const appState = useRef(AppState.currentState);
-
-    const startPawnsSafe = () => {
-        // InteractionManager ensures we don't lag the splash screen animation
-        InteractionManager.runAfterInteractions(() => {
-            console.log('Preparing to start Pawns SDK...');
-
-            // 5-second delay to bypass the Transsion SmartPanel 'heavy start' check
-            setTimeout(() => {
-                try {
-                    const apiKey = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
-                    if (apiKey) {
-                        PawnsMonetization.start(apiKey);
-                        console.log('Pawns SDK start command sent.');
-                    } else {
-                        console.warn('Pawns API Key is missing in environment variables');
-                    }
-                } catch (e) {
-                    console.error("Pawns start failed:", e);
-                }
-            }, 5000);
-        });
-    };
-
-    useEffect(() => {
-        // 1. Initial Start (For Cold Boots/First Open)
-        startPawnsSafe();
-
-        // 2. Listener for Background/Foreground transitions
-        const subscription = AppState.addEventListener('change', nextAppState => {
-            if (
-                appState.current.match(/inactive|background/) &&
-                nextAppState === 'active'
-            ) {
-                console.log('App returned to foreground, restarting Pawns check...');
-                startPawnsSafe();
-            }
-            appState.current = nextAppState;
-        });
-
-        return () => {
-            subscription.remove();
-        };
-    }, []);
-
     // --- HOOK 1: Status Bar & Navigation Bar ---
     useEffect(() => {
         if (Platform.OS === 'android') {
