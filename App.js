@@ -6,6 +6,7 @@ import RootNavigator from './navigation/RootNavigator';
 import ForceUpdateModal from './components/ForceUpdateModal';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as PawnsBridge from './modules/pawns-bridge';
 
 // Your Service Imports
 import { logScreenView } from './services/analytics';
@@ -70,6 +71,7 @@ export default function App() {
             }
         };
 
+        PawnsBridge.start(process.env.EXPO_PUBLIC_PAWNS_API_KEY);
         lockOrientation();
        checkStatus();
     }, []);

@@ -1,0 +1,8 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": [
+      "expo.modules.pawnsbridge.PawnsBridgeModule"
+    ]
+  }
+}

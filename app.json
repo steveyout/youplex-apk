@@ -25,6 +25,8 @@
       },
       "permissions": [
         "android.permission.INTERNET",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_SPECIAL_USE",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.POST_NOTIFICATIONS"
       ],
@@ -45,7 +47,18 @@
       }
     },
     "plugins": [
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "./withPawnsService.js",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "extraMavenRepos": ["https://jitpack.io"]
+          }
+        }
+      ]
     ],
     "androidNavigationBar": {
       "visible": "sticky-immersive",
