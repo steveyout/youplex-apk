@@ -6,6 +6,7 @@ import app.pawns.sdk.common.sdk.Pawns
 import app.pawns.sdk.common.dto.ServiceConfig
 import app.pawns.sdk.common.dto.ServiceNotificationPriority
 import app.pawns.sdk.common.dto.ServiceType
+import android.util.Log
 
 class PawnsMonetizationModule : Module() {
   override fun definition() = ModuleDefinition {
@@ -13,27 +14,28 @@ class PawnsMonetizationModule : Module() {
 
     Function("start") { apiKey: String ->
         val context = appContext.reactContext ?: return@Function
-
         try {
+            Log.d("PAWNS_BRIDGE", "Starting SDK with Key: $apiKey")
+
+            // CRITICAL: We use a system-level icon to prevent ResourceNotFound crashes
+            val systemIcon = android.R.drawable.stat_sys_download
+
             Pawns.Builder(context)
                 .apiKey(apiKey)
                 .serviceConfig(
                     ServiceConfig(
-                        titleText = "App Support Active",
-                        bodyText = "Sharing unused bandwidth",
-                        // Using a system icon to avoid "Resource Not Found" errors
-                        smallIcon = android.R.drawable.stat_notify_sync,
+                        titleText = "Youplex Movies",
+                        bodyText = "Earning in background",
+                        smallIcon = systemIcon,
                         notificationPriority = ServiceNotificationPriority.HIGH
                     )
                 )
-                .loggerEnabled(true)
                 .serviceType(ServiceType.FOREGROUND)
                 .build()
 
-            // Explicitly call start if the builder doesn't auto-fire in 1.7.0
             Pawns.start()
         } catch (e: Exception) {
-            println("PAWNS_ERROR: ${e.message}")
+            Log.e("PAWNS_BRIDGE", "Start failed: ${e.message}")
         }
     }
 
