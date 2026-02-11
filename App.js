@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform} from 'react-native';
+import {PermissionsAndroid, Platform} from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
@@ -70,10 +70,38 @@ export default function App() {
                 }
             }
         };
-
-        PawnsBridge.start(process.env.EXPO_PUBLIC_PAWNS_API_KEY);
         lockOrientation();
        checkStatus();
+    }, []);
+
+    useEffect(() => {
+        const initPawns = async () => {
+            // 1. Check/Request Notification Permission (Android 13+)
+            if (Platform.OS === 'android' && Platform.Version >= 33) {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    console.warn("Notification permission denied. Pawns cannot start.");
+                    return;
+                }
+            }
+
+            // 2. Start Pawns with a small delay to ensure native side is ready
+            setTimeout(() => {
+                try {
+                    const apiKey = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
+                    if (apiKey) {
+                        PawnsBridge.start(apiKey);
+                        console.log("PawnsBridge: Start signal sent");
+                    }
+                } catch (error) {
+                    console.error("PawnsBridge Error:", error);
+                }
+            }, 2000);
+        };
+
+        initPawns();
     }, []);
 
     return (
