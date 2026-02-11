@@ -60,9 +60,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_GITHUB_PAT: ${{ secrets.GH_PAT }}
         run: |
-          # 1. Generate native files
-          npx expo prebuild --platform android --no-install
-          
+        
           # 2. Update version in Gradle
           sed -i 's/versionCode [0-9]*/versionCode ${{ github.run_number }}/g' android/app/build.gradle
           sed -i 's/versionName "[^"]*"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
