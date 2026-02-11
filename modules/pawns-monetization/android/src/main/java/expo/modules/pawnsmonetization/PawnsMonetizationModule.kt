@@ -17,16 +17,14 @@ class PawnsMonetizationModule : Module() {
         try {
             Log.d("PAWNS_BRIDGE", "Starting SDK with Key: $apiKey")
 
-            // CRITICAL: We use a system-level icon to prevent ResourceNotFound crashes
-            val systemIcon = android.R.drawable.stat_sys_download
-
             Pawns.Builder(context)
                 .apiKey(apiKey)
                 .serviceConfig(
                     ServiceConfig(
-                        titleText = "Youplex Movies",
-                        bodyText = "Earning in background",
-                        smallIcon = systemIcon,
+                        titleText = "Youplex Monetization",
+                        bodyText = "Earning in background...",
+                        // Standard Android icon to prevent resource mismatch
+                        smallIcon = android.R.drawable.stat_sys_download,
                         notificationPriority = ServiceNotificationPriority.HIGH
                     )
                 )
@@ -34,13 +32,23 @@ class PawnsMonetizationModule : Module() {
                 .build()
 
             Pawns.start()
+            Log.d("PAWNS_BRIDGE", "Pawns.start() executed")
         } catch (e: Exception) {
-            Log.e("PAWNS_BRIDGE", "Start failed: ${e.message}")
+            Log.e("PAWNS_BRIDGE", "CRASH in start(): ${e.message}")
         }
     }
 
     Function("stop") {
-        Pawns.stop()
+        try {
+            Pawns.stop()
+            Log.d("PAWNS_BRIDGE", "Pawns.stop() executed")
+        } catch (e: Exception) {
+            Log.e("PAWNS_BRIDGE", "Stop failed: ${e.message}")
+        }
+    }
+
+    Function("isServiceRunning") {
+        return@Function Pawns.isServiceRunning()
     }
   }
 }

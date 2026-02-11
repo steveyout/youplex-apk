@@ -19,53 +19,39 @@ export default function App() {
     const [updateInfo, setUpdateInfo] = useState(null);
 
     useEffect(() => {
-        // We define the function inside useEffect to ensure it has access to the component lifecycle
-        const initializeMonetization = async () => {
+        let isMounted = true;
+
+        const startSDKFlow = async () => {
             if (Platform.OS !== 'android') return;
 
+            // 1. EXTENDED DELAY: TV mode/Immersive mode needs more time to settle
+            // This avoids the 'id info cannot be read' SurfaceFlinger error
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            if (!isMounted) return;
+
             try {
-                // 1. Check/Request Notification Permission (Required for Android 13+)
-                // Without this, starting a foreground service is an instant FATAL CRASH
+                // 2. REQUEST PERMISSION
                 if (Platform.Version >= 33) {
                     const granted = await PermissionsAndroid.request(
-                        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-                        {
-                            title: "Allow Notifications",
-                            message: "Allow notifications to keep app Updates upto date.",
-                            buttonNeutral: "Ask Me Later",
-                            buttonNegative: "Cancel",
-                            buttonPositive: "OK"
-                        }
+                        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
                     );
-
-                    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                        console.log("Pawns: Notification permission denied.");
-                        return;
-                    }
+                    if (granted !== PermissionsAndroid.RESULTS.GRANTED) return;
                 }
 
-                // 2. Start the SDK
+                // 3. START SDK
                 const apiKey = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
-
-                if (!apiKey) {
-                    console.error("Pawns: API Key missing from .env");
-                    return;
-                }
-
-                console.log("Pawns: Initializing with key...");
+                console.log("PAWNS_BRIDGE: Attempting start...");
                 PawnsMonetization.start(apiKey);
 
-            } catch (err) {
-                console.error("Pawns: Startup error", err);
+            } catch (error) {
+                console.error("PAWNS_BRIDGE: Init Error", error);
             }
         };
 
-        // Small delay to ensure the native bridge is 100% ready
-        const timer = setTimeout(() => {
-            initializeMonetization();
-        }, 1000);
+        startSDKFlow();
 
-        return () => clearTimeout(timer);
+        return () => { isMounted = false; };
     }, []);
 
     // --- HOOK 1: Status Bar & Navigation Bar ---

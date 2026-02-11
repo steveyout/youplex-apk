@@ -1,0 +1,6 @@
+{
+  "name": "pawns-monetization",
+  "version": "1.0.0",
+  "description": "Local pawns monetization module",
+  "main": "index.js"
+}

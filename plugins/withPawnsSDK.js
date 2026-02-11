@@ -4,16 +4,26 @@ module.exports = function withPawnsSDK(config) {
     config = withAndroidManifest(config, (config) => {
         const manifest = config.modResults.manifest;
 
-        // 1. Add the REQUIRED Android 14 Permission
+        // 1. Add Essential Permissions
         if (!manifest['uses-permission']) manifest['uses-permission'] = [];
-        manifest['uses-permission'].push({
-            $: { 'android:name': 'android.permission.FOREGROUND_SERVICE_DATA_SYNC' }
+
+        const permissions = [
+            'android.permission.INTERNET',
+            'android.permission.FOREGROUND_SERVICE',
+            'android.permission.FOREGROUND_SERVICE_DATA_SYNC', // CRITICAL for Android 14
+            'android.permission.POST_NOTIFICATIONS'
+        ];
+
+        permissions.forEach(perm => {
+            if (!manifest['uses-permission'].some(p => p.$['android:name'] === perm)) {
+                manifest['uses-permission'].push({ $: { 'android:name': perm } });
+            }
         });
 
+        // 2. Configure Service
         const mainApplication = manifest.application[0];
         if (!mainApplication.service) mainApplication.service = [];
 
-        // 2. Clear and Re-add Service with Correct Type
         mainApplication.service = mainApplication.service.filter(
             (s) => s.$['android:name'] !== 'app.pawns.sdk.common.service.PawnsService'
         );
@@ -29,7 +39,6 @@ module.exports = function withPawnsSDK(config) {
         return config;
     });
 
-    // Maven Repo and Implementation (Keep as before)
     config = withProjectBuildGradle(config, (config) => {
         if (!config.modResults.contents.includes('https://maven.pawns.app')) {
             config.modResults.contents = config.modResults.contents.replace(
