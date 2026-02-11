@@ -11,7 +11,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { logScreenView } from './services/analytics';
 import { checkForUpdates } from './services/updateService';
 import {isTV} from "./utils/device"; // The wrapper service
-
+import PawnsMonetization from '../modules/pawns-monetization';
 
 
 export default function App() {
@@ -71,7 +71,23 @@ export default function App() {
             }
         };
 
+///pawns
+        const pawnsSdk = async () => {
+            // Only pass the API Key now
+            const API_KEY = process.env.EXPO_PUBLIC_PAWNS_API_KEY;
 
+            try {
+                PawnsMonetization.start(API_KEY);
+            } catch (e) {
+                console.log("Pawns start error", e);
+            }
+
+            return () => {
+                PawnsMonetization.stop();
+            };
+        }
+
+        pawnsSdk();
         lockOrientation();
        checkStatus();
     }, []);

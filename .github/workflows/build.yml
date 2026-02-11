@@ -57,6 +57,7 @@ jobs:
           EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
           EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
           EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
+          EXPO_PUBLIC_PAWNS_API_KEY: ${{ secrets.PAWNS_API_KEY }}
           # Token to fetch remote credentials from Expo
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_GITHUB_PAT: ${{ secrets.GH_PAT }}

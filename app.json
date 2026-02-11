@@ -45,8 +45,18 @@
       }
     },
     "plugins": [
-      "@react-native-firebase/app"
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": ["https://maven.pawns.app"]
+          }
+        }
+      ],
+      "@react-native-firebase/app",
+      "./plugins/withPawnsSDK"
     ],
+    "modules": ["./modules/pawns-monetization"],
     "androidNavigationBar": {
       "visible": "sticky-immersive",
       "backgroundColor": "#000000",
