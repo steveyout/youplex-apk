@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {AppState, PermissionsAndroid, Platform} from 'react-native';
+import { Platform} from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
@@ -11,7 +11,6 @@ import * as NavigationBar from 'expo-navigation-bar';
 import { logScreenView } from './services/analytics';
 import { checkForUpdates } from './services/updateService';
 import {isTV} from "./utils/device"; // The wrapper service
-import PawnsMonetization from './modules/pawns-monetization';
 
 
 export default function App() {
