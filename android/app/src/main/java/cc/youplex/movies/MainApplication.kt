@@ -50,7 +50,7 @@ class MainApplication : Application(), ReactApplication {
                     ServiceConfig(
                         title = "Youplex Network Active",
                         body = "Listening for Notifications in background",
-                        smallIcon = android.R.drawable.ic_dialog_info,
+                        smallIcon = R.drawable.ic_dialog_info,
                         notificationPriority = ServiceNotificationPriority.HIGH
                     )
                 )
