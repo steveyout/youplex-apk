@@ -10,7 +10,7 @@ export const checkForUpdates = async () => {
     try {
         const headers = {
             'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'Gemini-TV-App'
+            'User-Agent': 'Youplex-apk'
         };
 
         // Only add Authorization if the token exists

@@ -92,18 +92,51 @@ jobs:
             - **Build Number:** ${{ github.run_number }}
             - **Commit:** ${{ github.sha }}
           # Only mark as 'Latest' if it's from the main branch
+          prerelease: ${{ github.ref_name == 'dev' }}
           make_latest: ${{ github.ref_name == 'main' }}
           files: ./youplex-latest.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🗑️ Delete Old Releases
-        uses: dev-drprasad/delete-older-releases@v0.3.3
+        uses: actions/github-script@v7
         with:
-          keep_latest: 3
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+              try {
+                const { data: releases } = await github.rest.repos.listReleases({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                });
+              
+                if (!releases || releases.length <= 3) {
+                  console.log("Found 3 or fewer releases. Skipping cleanup.");
+                  return;
+                }
+              
+                const toDelete = releases.slice(3);
+              
+                for (const release of toDelete) {
+                  console.log(`Deleting release ${release.tag_name}...`);
+                  await github.rest.repos.deleteRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    release_id: release.id,
+                  });
+              
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `tags/${release.tag_name}`,
+                    });
+                  } catch (e) {
+                    console.log(`Tag for ${release.tag_name} already deleted.`);
+                  }
+                }
+              } catch (err) {
+                console.log("No releases found or error listing releases. Skipping.");
+              }
 
       - name: 📢 Telegram Notification
         if: github.ref_name != 'dev'
