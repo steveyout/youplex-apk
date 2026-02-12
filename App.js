@@ -69,7 +69,6 @@ export default function App() {
                 }
             }
         };
-
         lockOrientation();
        checkStatus();
     }, []);

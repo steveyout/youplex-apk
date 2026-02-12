@@ -24,9 +24,11 @@
         "backgroundColor": "#000000"
       },
       "permissions": [
-        "android.permission.INTERNET",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.POST_NOTIFICATIONS"
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_SPECIAL_USE",
+        "POST_NOTIFICATIONS",
+        "INTERNET",
+        "RECEIVE_BOOT_COMPLETED"
       ],
       "isTV": true,
       "banner": "./assets/logo-tv.png",

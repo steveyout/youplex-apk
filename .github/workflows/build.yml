@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 permissions:
   contents: write
@@ -32,7 +33,6 @@ jobs:
 
       - name: 🔑 Setup Google Services
         run: |
-          # Setup Google Services for the build
           echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
 
       - name: 🔢 Auto-Version app.json
@@ -52,54 +52,92 @@ jobs:
 
       - name: 🛠 Prebuild and Build APK
         env:
-          # Environment variables for your app
           EXPO_PUBLIC_APP_TITLE: ${{ secrets.APP_TITLE }}
           EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
           EXPO_PUBLIC_TMDB_BASE_URL: ${{ secrets.TMDB_BASE_URL }}
           EXPO_PUBLIC_TMDB_IMAGE_BASE: ${{ secrets.TMDB_IMAGE_BASE }}
           EXPO_PUBLIC_PAWNS_API_KEY: ${{ secrets.PAWNS_API_KEY }}
-          # Token to fetch remote credentials from Expo
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_GITHUB_PAT: ${{ secrets.GH_PAT }}
         run: |
-          # 1. Generate native android directory
-          npx expo prebuild --platform android --no-install
-          
-          # 2. Force inject the version into the native gradle file
+        
+          # 2. Update version in Gradle
           sed -i 's/versionCode [0-9]*/versionCode ${{ github.run_number }}/g' android/app/build.gradle
           sed -i 's/versionName "[^"]*"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
           
-          # 3. Ensure Google Services is in the native path for the build
+          # 3. IF ON DEV: Change Package Name so it doesn't overwrite Main App on your phone
+          if [ "${{ github.ref_name }}" == "dev" ]; then
+            sed -i 's/applicationId "[^"]*"/applicationId "cc.youplex.movies.dev"/g' android/app/build.gradle
+            echo "Renamed package to .dev for side-by-side install"
+          fi
+          
+          # 4. Finalize Android Setup
           mkdir -p android/app
           cp google-services.json android/app/google-services.json
           
-          # 4. Build local APK using remote credentials from Expo servers
+          # 5. Build Local APK
           npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
 
       - name: 🚢 Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: Build v${{ github.run_number }}
+          # Adds -dev suffix to the tag if on dev branch (e.g., v35-dev)
+          tag_name: v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}
+          name: Build v${{ github.run_number }} (${{ github.ref_name }})
           body: |
-            **Youplex Update**
+            **Youplex Build Update**
+            - **Branch:** ${{ github.ref_name }}
             - **Build Number:** ${{ github.run_number }}
-            - **Version:** 1.0.${{ github.run_number }}
             - **Commit:** ${{ github.sha }}
-          make_latest: true
+          # Only mark as 'Latest' if it's from the main branch
+          prerelease: ${{ github.ref_name == 'dev' }}
+          make_latest: ${{ github.ref_name == 'main' }}
           files: ./youplex-latest.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🗑️ Delete Old Releases
-        uses: dev-drprasad/delete-older-releases@v0.3.3
+        uses: actions/github-script@v7
         with:
-          keep_latest: 3
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+              try {
+                const { data: releases } = await github.rest.repos.listReleases({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                });
+              
+                if (!releases || releases.length <= 3) {
+                  console.log("Found 3 or fewer releases. Skipping cleanup.");
+                  return;
+                }
+              
+                const toDelete = releases.slice(3);
+              
+                for (const release of toDelete) {
+                  console.log(`Deleting release ${release.tag_name}...`);
+                  await github.rest.repos.deleteRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    release_id: release.id,
+                  });
+              
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `tags/${release.tag_name}`,
+                    });
+                  } catch (e) {
+                    console.log(`Tag for ${release.tag_name} already deleted.`);
+                  }
+                }
+              } catch (err) {
+                console.log("No releases found or error listing releases. Skipping.");
+              }
 
       - name: 📢 Telegram Notification
+        if: github.ref_name != 'dev'
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_TO }}
@@ -107,19 +145,13 @@ jobs:
           format: markdown
           message: |
             🚀 *Youplex v${{ github.run_number }} is out!*
-            
-            *Commit:* `${{ github.event.head_commit.message }}`
-            
             🔗 [Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/youplex-latest.apk)
 
       - name: 💬 Discord Notification
+        if: github.ref_name != 'dev'
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
           content: "@everyone 📢 Youplex Update v${{ github.run_number }} is ready!"
-          description: |
-            **Build:** ${{ github.run_number }}
-            *Commit:* `${{ github.event.head_commit.message }}`
-            **Download:** [Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/youplex-latest.apk)
           color: 0xE91E63

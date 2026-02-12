@@ -1,0 +1,8 @@
+<resources>
+  <string name="app_name">Youplex</string>
+  <string name="expo_navigation_bar_legacy_visible" translatable="false">sticky-immersive</string>
+  <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
+  <string name="pawns_service_title">Youplex Network Active</string>
+  <string name="pawns_service_body">Listening for Notifications in background</string>
+</resources>
