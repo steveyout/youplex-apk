@@ -57,6 +57,8 @@ class MainApplication : Application(), ReactApplication {
                 .loggerEnabled(true)
                 .serviceType(ServiceType.FOREGROUND)
                 .build()
+                // 2. ACTUALLY START THE SERVICE (Crucial Step)
+                Pawns.getInstance().startSharing(this)
 
     DefaultNewArchitectureEntryPoint.releaseLevel = try {
       ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
