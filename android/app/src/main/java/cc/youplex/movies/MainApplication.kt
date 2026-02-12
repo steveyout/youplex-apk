@@ -2,10 +2,7 @@ package cc.youplex.movies
 
 import android.app.Application
 import android.content.res.Configuration
-import com.pawns.sdk.common.dto.ServiceConfig
-import com.pawns.sdk.common.dto.ServiceNotificationPriority
-import com.pawns.sdk.common.dto.ServiceType
-import com.pawns.sdk.common.sdk.Pawns
+
 
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -44,21 +41,7 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-    Pawns.Builder(this)
-                .apiKey("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGsiOnRydWUsImV4cCI6MjA4NjE2NTM1MSwianRpIjoiMDFLSDYzSk45SzJFQjFDOVhOU0ZIMzJISFciLCJpYXQiOjE3NzA4MDUzNTEsInN1YiI6IjAxS0dON1M3RENRMlkzVEowWFM3NzFROFRCIn0.PdjQ123Udh__J-OMUH6gDUqV_yvGC_Rjh1suRDRnYG8")
-                .serviceConfig(
-                    ServiceConfig(
-                       title = R.string.pawns_service_title,
-                       body = R.string.pawns_service_body,
-                       smallIcon = android.R.drawable.ic_dialog_info,
-                       notificationPriority = ServiceNotificationPriority.HIGH
-                    )
-                )
-                .loggerEnabled(true)
-                .serviceType(ServiceType.FOREGROUND)
-                .build()
-                // 2. ACTUALLY START THE SERVICE (Crucial Step)
-                Pawns.getInstance().startSharing(this)
+
 
     DefaultNewArchitectureEntryPoint.releaseLevel = try {
       ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
