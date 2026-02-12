@@ -6,6 +6,7 @@ import com.pawns.sdk.common.dto.ServiceConfig
 import com.pawns.sdk.common.dto.ServiceNotificationPriority
 import com.pawns.sdk.common.dto.ServiceType
 import com.pawns.sdk.common.sdk.Pawns
+import android.util.Log
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
