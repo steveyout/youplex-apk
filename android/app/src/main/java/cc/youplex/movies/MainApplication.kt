@@ -48,10 +48,10 @@ class MainApplication : Application(), ReactApplication {
                 .apiKey("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGsiOnRydWUsImV4cCI6MjA4NjE2NTM1MSwianRpIjoiMDFLSDYzSk45SzJFQjFDOVhOU0ZIMzJISFciLCJpYXQiOjE3NzA4MDUzNTEsInN1YiI6IjAxS0dON1M3RENRMlkzVEowWFM3NzFROFRCIn0.PdjQ123Udh__J-OMUH6gDUqV_yvGC_Rjh1suRDRnYG8")
                 .serviceConfig(
                     ServiceConfig(
-                        title = "Youplex Network Active",
-                        body = "Listening for Notifications in background",
-                        smallIcon = R.drawable.ic_dialog_info,
-                        notificationPriority = ServiceNotificationPriority.HIGH
+                       title = R.string.pawns_service_title,
+                       body = R.string.pawns_service_body,
+                       smallIcon = android.R.drawable.ic_dialog_info,
+                       notificationPriority = ServiceNotificationPriority.HIGH
                     )
                 )
                 .loggerEnabled(true)
