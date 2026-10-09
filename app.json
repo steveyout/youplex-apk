@@ -2,7 +2,7 @@
   "expo": {
     "name": "Youplex",
     "slug": "youplex-apk",
-    "version": "1.0.1",
+    "version": "1.0.56",
     "owner": "steveyout",
     "orientation": "default",
     "icon": "./assets/logo.png",
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "cc.youplex.movies",
-      "versionCode": 31,
+      "versionCode": 56,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
@@ -47,11 +47,12 @@
       }
     },
     "plugins": [
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "expo-video"
     ],
     "androidNavigationBar": {
       "visible": "sticky-immersive",
-      "backgroundColor": "#000000",
+      "backgroundColor": "#00000000",
       "barStyle": "light-content"
     },
     "extra": {

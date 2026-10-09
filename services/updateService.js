@@ -7,6 +7,12 @@ const GITHUB_REPO = "youplex-apk";
 const GH_TOKEN = process.env.EXPO_PUBLIC_GITHUB_PAT;
 
 export const checkForUpdates = async () => {
+    // In local development / Expo Go / Web dev, allow moving past update screen
+    if (__DEV__) {
+        console.log('[UpdateCheck] Dev mode (__DEV__) active - bypassing forced update modal.');
+        return { updateAvailable: false, isDev: true };
+    }
+
     try {
         const headers = {
             'Accept': 'application/vnd.github.v3+json',
@@ -38,7 +44,7 @@ export const checkForUpdates = async () => {
         console.log(`[UpdateCheck] Local: ${localBuild} | Remote: ${remoteBuild}`);
 
         if (remoteBuild > localBuild && localBuild !== 0) {
-            const apkAsset = data.assets.find(asset => asset.name === "youplex-latest.apk");
+            const apkAsset = data.assets?.find(asset => asset.name === "youplex-latest.apk");
 
             return {
                 updateAvailable: true,

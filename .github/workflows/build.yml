@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - dev
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -60,39 +61,57 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_GITHUB_PAT: ${{ secrets.GH_PAT }}
         run: |
-        
-          # 2. Update version in Gradle
+          # 1. Update version in native Gradle
           sed -i 's/versionCode [0-9]*/versionCode ${{ github.run_number }}/g' android/app/build.gradle
           sed -i 's/versionName "[^"]*"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
           
-          # 3. IF ON DEV: Change Package Name so it doesn't overwrite Main App on your phone
+          # 2. Configure for Dev build (isolated package so it installs side-by-side with production)
           if [ "${{ github.ref_name }}" == "dev" ]; then
+            echo "Configuring Dev build: package=cc.youplex.movies.dev"
             sed -i 's/applicationId "[^"]*"/applicationId "cc.youplex.movies.dev"/g' android/app/build.gradle
-            echo "Renamed package to .dev for side-by-side install"
+            jq '.expo.android.package = "cc.youplex.movies.dev" | .expo.name = "Youplex (Dev)"' app.json > app.json.tmp && mv app.json.tmp app.json
           fi
           
-          # 4. Finalize Android Setup
+          # 3. Finalize Android Setup
           mkdir -p android/app
           cp google-services.json android/app/google-services.json
           
-          # 5. Build Local APK
+          # 4. Build Local APK
           npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
+          
+          # 5. Prepare artifacts for both builds
+          if [ "${{ github.ref_name }}" == "dev" ]; then
+            cp ./youplex-latest.apk ./youplex-dev-latest.apk
+            cp ./youplex-latest.apk ./youplex-dev-v${{ github.run_number }}.apk
+          else
+            cp ./youplex-latest.apk ./youplex-v${{ github.run_number }}.apk
+          fi
 
       - name: 🚢 Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          # Adds -dev suffix to the tag if on dev branch (e.g., v35-dev)
           tag_name: v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}
-          name: Build v${{ github.run_number }} (${{ github.ref_name }})
+          name: ${{ github.ref_name == 'dev' && format('🧪 Youplex v{0}-dev (Development)', github.run_number) || format('🚀 Youplex v{0} (Production)', github.run_number) }}
           body: |
-            **Youplex Build Update**
-            - **Branch:** ${{ github.ref_name }}
-            - **Build Number:** ${{ github.run_number }}
-            - **Commit:** ${{ github.sha }}
-          # Only mark as 'Latest' if it's from the main branch
+            ## 🎬 Youplex ${{ github.ref_name == 'dev' && 'Dev Build' || 'Production Release' }} (v1.0.${{ github.run_number }})
+            
+            - **Environment:** `${{ github.ref_name == 'dev' && 'Development (cc.youplex.movies.dev)' || 'Production (cc.youplex.movies)' }}`
+            - **Branch:** `${{ github.ref_name }}`
+            - **Build Number:** `${{ github.run_number }}`
+            - **Commit:** [`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            - **Author:** @${{ github.actor }}
+            
+            ### 📝 Commit Message
+            > ${{ github.event.head_commit.message || 'Manual build dispatch' }}
+            
+            ### 📥 Download Options
+            - [Download youplex-latest.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk)
+            ${{ github.ref_name == 'dev' && format('- [Download youplex-dev-latest.apk](https://github.com/{0}/releases/download/v{1}-dev/youplex-dev-latest.apk)', github.repository, github.run_number) || '' }}
           prerelease: ${{ github.ref_name == 'dev' }}
           make_latest: ${{ github.ref_name == 'main' }}
-          files: ./youplex-latest.apk
+          files: |
+            ./youplex-latest.apk
+            ${{ github.ref_name == 'dev' && './youplex-dev-latest.apk' || format('./youplex-v{0}.apk', github.run_number) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -107,12 +126,12 @@ jobs:
                   repo: context.repo.repo,
                 });
               
-                if (!releases || releases.length <= 3) {
-                  console.log("Found 3 or fewer releases. Skipping cleanup.");
+                if (!releases || releases.length <= 4) {
+                  console.log("Found 4 or fewer releases. Skipping cleanup.");
                   return;
                 }
               
-                const toDelete = releases.slice(3);
+                const toDelete = releases.slice(4);
               
                 for (const release of toDelete) {
                   console.log(`Deleting release ${release.tag_name}...`);
@@ -126,7 +145,7 @@ jobs:
                     await github.rest.git.deleteRef({
                       owner: context.repo.owner,
                       repo: context.repo.repo,
-                      ref: `tags/${release.tag_name}`,
+                      ref: `tags/${release.tag_name}` || release.tag_name,
                     });
                   } catch (e) {
                     console.log(`Tag for ${release.tag_name} already deleted.`);
@@ -136,22 +155,79 @@ jobs:
                 console.log("No releases found or error listing releases. Skipping.");
               }
 
-      - name: 📢 Telegram Notification
-        if: github.ref_name != 'dev'
+      # -------------------------------------------------------------
+      # NOTIFICATIONS (Telegram & Discord for BOTH main & dev builds)
+      # -------------------------------------------------------------
+
+      - name: 📢 Telegram Notification (Success)
+        if: success()
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
-          format: markdown
+          format: html
           message: |
-            🚀 *Youplex v${{ github.run_number }} is out!*
-            🔗 [Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/youplex-latest.apk)
+            ${{ github.ref_name == 'dev' && '🧪 <b>Youplex Dev Build Ready!</b>' || '🚀 <b>Youplex Production Release is Out!</b>' }}
+            ━━━━━━━━━━━━━━━━━━━━
+            📦 <b>Version:</b> <code>1.0.${{ github.run_number }}</code> (Build #${{ github.run_number }})
+            🌿 <b>Branch:</b> <code>${{ github.ref_name }}</code> (${{ github.ref_name == 'dev' && 'Development' || 'Production' }})
+            📱 <b>Package:</b> <code>${{ github.ref_name == 'dev' && 'cc.youplex.movies.dev' || 'cc.youplex.movies' }}</code>
+            👤 <b>Author:</b> @${{ github.actor }}
+            📝 <b>Commit:</b> <i>${{ github.event.head_commit.message || 'Manual build dispatch' }}</i>
+            ━━━━━━━━━━━━━━━━━━━━
+            📥 <a href="https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk">Direct Download APK</a>
+            🌐 <a href="https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}">View Release on GitHub</a>
 
-      - name: 💬 Discord Notification
-        if: github.ref_name != 'dev'
+      - name: 🚨 Telegram Notification (Failure)
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: html
+          message: |
+            ❌ <b>Youplex Build #${{ github.run_number }} FAILED!</b>
+            ━━━━━━━━━━━━━━━━━━━━
+            🌿 <b>Branch:</b> <code>${{ github.ref_name }}</code>
+            👤 <b>Triggered By:</b> @${{ github.actor }}
+            📝 <b>Commit:</b> <i>${{ github.event.head_commit.message || 'Manual build dispatch' }}</i>
+            ━━━━━━━━━━━━━━━━━━━━
+            🔍 <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Build Error Logs</a>
+
+      - name: 💬 Discord Notification (Success)
+        if: success()
         uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ job.status }}
-          content: "@everyone 📢 Youplex Update v${{ github.run_number }} is ready!"
-          color: 0xE91E63
+          title: "${{ github.ref_name == 'dev' && format('🧪 Youplex Dev Build v{0}-dev Ready', github.run_number) || format('🚀 Youplex v{0} Released', github.run_number) }}"
+          content: "${{ github.ref_name == 'dev' && format('🧪 New Youplex Dev build v{0}-dev is ready for testing!', github.run_number) || format('@everyone 📢 Youplex Update v{0} is ready!', github.run_number) }}"
+          description: |
+            **A new build of Youplex is ready for installation!**
+            
+            📦 **Version:** `1.0.${{ github.run_number }}` (Build #${{ github.run_number }})
+            🌿 **Branch:** `${{ github.ref_name }}` (${{ github.ref_name == 'dev' && 'Development' || 'Production' }})
+            📱 **Package ID:** `${{ github.ref_name == 'dev' && 'cc.youplex.movies.dev' || 'cc.youplex.movies' }}`
+            👤 **Author:** @${{ github.actor }}
+            📝 **Commit:** `${{ github.event.head_commit.message || 'Manual build dispatch' }}`
+            
+            📥 [Direct Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk) • [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }})
+          color: ${{ github.ref_name == 'dev' && '0x3B82F6' || '0xE50914' }}
+
+      - name: 🚨 Discord Notification (Failure)
+        if: failure()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ job.status }}
+          title: "❌ Youplex Build #${{ github.run_number }} Failed"
+          content: "@here ⚠️ Youplex Build #${{ github.run_number }} failed on branch `${{ github.ref_name }}`!"
+          description: |
+            **The automated build failed during execution.**
+            
+            🌿 **Branch:** `${{ github.ref_name }}`
+            👤 **Triggered By:** @${{ github.actor }}
+            📝 **Commit:** `${{ github.event.head_commit.message || 'Manual build dispatch' }}`
+            
+            🔍 [Inspect Failure Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: 0xDC2626

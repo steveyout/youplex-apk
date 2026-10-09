@@ -7,19 +7,21 @@ import {
     Pressable,
     StyleSheet,
     Platform,
-    Dimensions
+    Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getHistory, clearHistory } from '../services/historyService';
 import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../theme/ThemeContext';
-import { Trash2, Clock } from 'lucide-react-native';
-import { TopBar } from '../components/TopBar'; // Added TopBar
+import { Trash2, Clock, Play } from 'lucide-react-native';
+import { TopBar } from '../components/TopBar';
 import { isTV } from '../utils/device';
 
 const { width } = Dimensions.get('window');
 
 export const HistoryScreen = () => {
-    const { theme } = useAppTheme();
+    const { theme, isDarkMode } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const [history, setHistory] = useState([]);
     const navigation = useNavigation();
 
@@ -36,49 +38,71 @@ export const HistoryScreen = () => {
         setHistory([]);
     };
 
+    const safeTopMargin = isTV ? 130 : Math.max(insets.top + 92, Platform.OS === 'ios' ? 140 : 128);
+
     const renderItem = ({ item }) => {
         const isShow = item.type === 'tv' || item.season;
 
         return (
             <Pressable
-                // TV Navigation: ensures focus can move to the SideMenu
                 enablesNextFocusAppearance={true}
                 style={({ focused }) => [
                     styles.card,
-                    { backgroundColor: theme.colors.elevation.level2 },
-                    focused && styles.tvFocusBorder
+                    {
+                        backgroundColor: theme.colors.cardBg,
+                        borderColor: theme.colors.cardBorder,
+                    },
+                    focused && styles.tvFocusBorder,
                 ]}
-                onPress={() => navigation.navigate('Player', {
-                    id: item.id,
-                    type: item.type,
-                    season: item.season,
-                    episode: item.episode,
-                    item: item
-                })}
+                onPress={() =>
+                    navigation.navigate('Player', {
+                        id: item.id,
+                        type: item.type,
+                        season: item.season,
+                        episode: item.episode,
+                        item,
+                        position: item.position,
+                    })
+                }
             >
                 <Image
-                    source={{ uri: `https://image.tmdb.org/t/p/w300${item.poster_path}` }}
+                    source={{
+                        uri: item.poster_path
+                            ? `https://image.tmdb.org/t/p/w300${item.poster_path}`
+                            : (item.image || 'https://via.placeholder.com/300x450'),
+                    }}
                     style={styles.poster}
                 />
                 <View style={styles.info}>
-                    <Text style={[styles.title, { color: theme.colors.onSurface }]} numberOfLines={1}>
+                    <Text
+                        style={[
+                            styles.title,
+                            { color: isDarkMode ? '#FFFFFF' : '#111827' },
+                        ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                    >
                         {item.title || item.name}
                     </Text>
 
                     {isShow && (
                         <View style={styles.episodeBadge}>
-                            <Text style={styles.episodeText}>
-                                S{item.season} • E{item.episode}
+                            <Text style={styles.episodeText} numberOfLines={1}>
+                                Season {item.season} • Episode {item.episode}
                             </Text>
                         </View>
                     )}
 
                     <View style={styles.dateRow}>
-                        <Clock size={isTV ? 16 : 12} color={theme.colors.outline} />
-                        <Text style={[styles.date, { color: theme.colors.outline }]}>
-                            {new Date(item.watchedAt).toLocaleDateString()}
+                        <Clock size={isTV ? 16 : 12} color="#8A99A8" />
+                        <Text style={styles.date}>
+                            {item.watchedAt ? new Date(item.watchedAt).toLocaleDateString() : 'Recently'}
                         </Text>
                     </View>
+                </View>
+
+                <View style={styles.playIconContainer}>
+                    <Play color="#FF3030" size={18} fill="#FF3030" />
                 </View>
             </Pressable>
         );
@@ -86,43 +110,75 @@ export const HistoryScreen = () => {
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-            {/* Added TopBar to keep UI consistent */}
             <TopBar />
 
-            <View style={[styles.header, isTV && styles.headerTV]}>
-                <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
-                    Watch History
-                </Text>
+            <View style={[styles.header, { marginTop: safeTopMargin }, isTV && styles.headerTV]}>
+                <View style={styles.headerTitleRow}>
+                    <View style={styles.titleAccent} />
+                    <Text
+                        style={[
+                            styles.headerTitle,
+                            { color: theme.colors.onBackground },
+                        ]}
+                    >
+                        Watch History
+                    </Text>
+                </View>
 
                 {history.length > 0 && (
                     <Pressable
                         onPress={handleClear}
                         style={({ focused }) => [
                             styles.clearBtnWrapper,
-                            focused && styles.clearFocus
+                            focused && styles.clearFocus,
                         ]}
                     >
-                        <Trash2 size={isTV ? 28 : 18} color="#ff4444" />
-                        <Text style={[styles.clearBtn, isTV && { fontSize: 20 }]}>Clear All</Text>
+                        <Trash2 size={isTV ? 24 : 17} color="#FF5252" />
+                        <Text style={[styles.clearBtn, isTV && { fontSize: 18 }]}>Clear All</Text>
                     </Pressable>
                 )}
             </View>
 
             <FlatList
                 data={history}
-                keyExtractor={(item) => item.watchedAt.toString()}
+                keyExtractor={(item, index) =>
+                    item.watchedAt ? item.watchedAt.toString() : `${item.id}-${index}`
+                }
                 renderItem={renderItem}
                 ListEmptyComponent={
                     <View style={styles.emptyWrapper}>
-                        <Clock size={isTV ? 100 : 64} color={theme.colors.outline} strokeWidth={1} />
-                        <Text style={[styles.empty, { color: theme.colors.outline }]}>
-                            Your watch history is empty.
+                        <View
+                            style={[
+                                styles.emptyIconCircle,
+                                {
+                                    backgroundColor: isDarkMode
+                                        ? 'rgba(255, 48, 48, 0.12)'
+                                        : 'rgba(255, 48, 48, 0.08)',
+                                    borderColor: isDarkMode
+                                        ? 'rgba(255, 48, 48, 0.25)'
+                                        : 'rgba(255, 48, 48, 0.15)',
+                                },
+                            ]}
+                        >
+                            <Clock size={isTV ? 64 : 44} color="#FF3030" strokeWidth={1.8} />
+                        </View>
+                        <Text
+                            style={[
+                                styles.emptyTitle,
+                                { color: isDarkMode ? '#FFFFFF' : '#111827' },
+                            ]}
+                        >
+                            Your history is clean
+                        </Text>
+                        <Text style={styles.emptySubtitle}>
+                            Movies and series you stream will appear here for easy resumption.
                         </Text>
                     </View>
                 }
                 contentContainerStyle={[
                     styles.listContent,
-                    isTV && styles.listContentTV
+                    isTV && styles.listContentTV,
+                    { paddingBottom: 150 + insets.bottom },
                 ]}
                 numColumns={isTV ? 2 : 1}
                 key={isTV ? 'tv-history-grid' : 'mobile-history-list'}
@@ -132,71 +188,155 @@ export const HistoryScreen = () => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
+    container: {
+        flex: 1,
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        // Increased top margin to account for floating TopBar
-        marginTop: isTV ? 130 : (Platform.OS === 'ios' ? 100 : 80),
-        marginBottom: 25
+        marginBottom: 20,
     },
     headerTV: {
-        paddingLeft: 120, // Offset for SideMenu (100) + extra breathing room (20)
-        paddingRight: 60
+        paddingLeft: 120,
+        paddingRight: 60,
     },
-    headerTitle: { fontSize: isTV ? 32 : 24, fontWeight: '900' },
+    headerTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    titleAccent: {
+        width: 4,
+        height: 22,
+        borderRadius: 2,
+        backgroundColor: '#FF3030',
+    },
+    headerTitle: {
+        fontSize: isTV ? 32 : 22,
+        fontWeight: '900',
+    },
     clearBtnWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 10,
-        gap: 8,
-        borderRadius: 8
+        gap: 6,
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 82, 82, 0.14)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 82, 82, 0.3)',
+    },
+    clearBtn: {
+        color: '#FF5252',
+        fontWeight: '700',
+        fontSize: 13,
     },
     clearFocus: {
-        backgroundColor: 'rgba(255, 68, 68, 0.15)',
-        transform: [{ scale: 1.1 }]
+        borderColor: '#FF5252',
+        borderWidth: 2,
+        transform: [{ scale: 1.05 }],
     },
-    clearBtn: { color: '#ff4444', fontWeight: 'bold', fontSize: 14 },
-    listContent: { paddingHorizontal: 15, paddingBottom: 100 },
+    listContent: {
+        paddingHorizontal: 16,
+    },
     listContentTV: {
-        paddingLeft: 110, // Match SideMenu offset
-        paddingRight: 40
+        paddingLeft: 120,
+        paddingRight: 60,
     },
     card: {
         flexDirection: 'row',
-        marginBottom: 20,
-        borderRadius: 12,
-        overflow: 'hidden',
-        flex: 1,
-        marginHorizontal: isTV ? 10 : 0,
-        elevation: 3
-    },
-    tvFocusBorder: {
-        borderWidth: 3,
-        borderColor: '#E91E63',
-        transform: [{ scale: 1.03 }],
-        zIndex: 10
+        alignItems: 'center',
+        borderRadius: 16,
+        padding: 12,
+        marginBottom: 14,
+        borderWidth: 1.2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
+        marginHorizontal: isTV ? 8 : 0,
+        flex: isTV ? 0.5 : 1,
     },
     poster: {
-        width: isTV ? 120 : 80,
-        height: isTV ? 180 : 110,
-        resizeMode: 'cover'
+        width: 58,
+        height: 84,
+        borderRadius: 10,
     },
-    info: { padding: 15, justifyContent: 'center', flex: 1 },
-    title: { fontSize: isTV ? 22 : 16, fontWeight: 'bold' },
+    info: {
+        flex: 1,
+        marginLeft: 14,
+        justifyContent: 'center',
+    },
+    title: {
+        fontSize: isTV ? 18 : 15,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
     episodeBadge: {
-        backgroundColor: 'rgba(233, 30, 99, 0.15)',
         alignSelf: 'flex-start',
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 6,
-        marginTop: 10
+        backgroundColor: 'rgba(255, 48, 48, 0.15)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginBottom: 6,
     },
-    episodeText: { color: '#E91E63', fontSize: 14, fontWeight: 'bold' },
-    dateRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-    date: { fontSize: isTV ? 14 : 12 },
-    emptyWrapper: { flex: 1, alignItems: 'center', marginTop: 150 },
-    empty: { textAlign: 'center', marginTop: 20, fontSize: isTV ? 22 : 16 }
+    episodeText: {
+        color: '#FF4D4D',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    dateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    date: {
+        color: '#8A99A8',
+        fontSize: 11,
+    },
+    playIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 48, 48, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 10,
+    },
+    emptyWrapper: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        paddingHorizontal: 24,
+    },
+    emptyIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    emptySubtitle: {
+        color: '#8A99A8',
+        fontSize: 13,
+        textAlign: 'center',
+        lineHeight: 18,
+        maxWidth: 300,
+    },
+    tvFocusBorder: {
+        borderWidth: 2,
+        borderColor: '#FF3030',
+        transform: [{ scale: 1.02 }],
+    },
 });

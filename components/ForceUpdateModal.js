@@ -1,29 +1,58 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, Linking, BackHandler } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, Linking } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Sparkles, Download, ArrowRight } from 'lucide-react-native';
 
-const ForceUpdateModal = ({ visible, updateData }) => {
+export const ForceUpdateModal = ({ visible, updateData, onDismiss }) => {
     if (!visible || !updateData) return null;
 
     const handleUpdate = () => {
-        Linking.openURL(updateData.downloadUrl);
+        if (updateData.downloadUrl) {
+            Linking.openURL(updateData.downloadUrl);
+        }
     };
 
     return (
         <Modal transparent visible={visible} animationType="fade">
             <View style={styles.overlay}>
-                <View style={styles.modalContainer}>
+                <BlurView intensity={85} tint="dark" style={styles.modalContainer}>
+                    <View style={styles.iconCircle}>
+                        <Sparkles color="#FF3030" size={28} />
+                    </View>
+
                     <Text style={styles.title}>Update Required</Text>
                     <Text style={styles.version}>Version: {updateData.versionName}</Text>
                     <Text style={styles.description}>
-                        To keep YouPlex running smoothly and securely, you need to install the latest update.
+                        To keep Youplex running smoothly and enjoy new features, please install the latest update.
                     </Text>
 
-                    <TouchableOpacity style={styles.button} onPress={handleUpdate}>
-                        <Text style={styles.buttonText}>Download & Install</Text>
-                    </TouchableOpacity>
+                    <Pressable style={styles.buttonWrapper} onPress={handleUpdate}>
+                        <LinearGradient
+                            colors={['#FF4565', '#FF3030', '#B71833']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.button}
+                        >
+                            <Download color="#FFFFFF" size={18} />
+                            <Text style={styles.buttonText}>Download & Install</Text>
+                        </LinearGradient>
+                    </Pressable>
 
-                    <Text style={styles.footer}>The app will close if you don't update.</Text>
-                </View>
+                    {/* Allow dismissing in local dev / testing */}
+                    {Boolean(onDismiss) && (
+                        <Pressable style={styles.dismissBtn} onPress={onDismiss}>
+                            <Text style={styles.dismissBtnText}>Continue Anyway (Dev / Test)</Text>
+                            <ArrowRight color="#8A99A8" size={16} />
+                        </Pressable>
+                    )}
+
+                    <Text style={styles.footer}>
+                        {typeof __DEV__ !== 'undefined' && __DEV__
+                            ? 'Development mode active'
+                            : "The app will close if you don't update."}
+                    </Text>
+                </BlurView>
             </View>
         </Modal>
     );
@@ -32,56 +61,97 @@ const ForceUpdateModal = ({ visible, updateData }) => {
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backgroundColor: 'rgba(5, 5, 5, 0.85)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
     },
     modalContainer: {
         width: '100%',
-        backgroundColor: '#1a1a1a',
-        borderRadius: 20,
-        padding: 25,
+        maxWidth: 420,
+        borderRadius: 24,
+        padding: 28,
         alignItems: 'center',
+        borderWidth: 1.2,
+        borderColor: 'rgba(255, 48, 48, 0.35)',
+        overflow: 'hidden',
+        shadowColor: '#FF3030',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.45,
+        shadowRadius: 16,
+        elevation: 12,
+    },
+    iconCircle: {
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+        backgroundColor: 'rgba(255, 48, 48, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#E91E63', // Using your theme color
+        borderColor: 'rgba(255, 48, 48, 0.3)',
     },
     title: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: '#fff',
-        marginBottom: 10,
+        color: '#FFFFFF',
+        marginBottom: 6,
     },
     version: {
         fontSize: 14,
-        color: '#E91E63',
-        marginBottom: 15,
-        fontWeight: '600',
+        color: '#FF4D4D',
+        marginBottom: 14,
+        fontWeight: '700',
     },
     description: {
-        fontSize: 16,
-        color: '#ccc',
+        fontSize: 14,
+        color: '#919EAB',
         textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 25,
+        lineHeight: 21,
+        marginBottom: 24,
+    },
+    buttonWrapper: {
+        width: '100%',
+        borderRadius: 25,
+        overflow: 'hidden',
     },
     button: {
-        backgroundColor: '#E91E63',
-        paddingVertical: 15,
-        paddingHorizontal: 40,
-        borderRadius: 30,
-        width: '100%',
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        borderRadius: 25,
+        gap: 8,
     },
     buttonText: {
-        color: '#fff',
-        fontSize: 18,
+        color: '#FFFFFF',
+        fontSize: 15,
         fontWeight: 'bold',
     },
+    dismissBtn: {
+        marginTop: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.15)',
+        gap: 6,
+    },
+    dismissBtnText: {
+        color: '#E0E6ED',
+        fontSize: 13,
+        fontWeight: '700',
+    },
     footer: {
-        marginTop: 20,
+        marginTop: 18,
         fontSize: 12,
-        color: '#666',
+        color: '#637381',
     },
 });
 

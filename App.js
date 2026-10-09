@@ -1,45 +1,60 @@
 import React, { useEffect, useState } from 'react';
-import { Platform} from 'react-native';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppThemeProvider } from './theme/ThemeContext';
 import RootNavigator from './navigation/RootNavigator';
 import ForceUpdateModal from './components/ForceUpdateModal';
 import { StatusBar } from 'expo-status-bar';
 import * as NavigationBar from 'expo-navigation-bar';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
-// Your Service Imports
+// Services
 import { logScreenView } from './services/analytics';
 import { checkForUpdates } from './services/updateService';
-import {isTV} from "./utils/device"; // The wrapper service
-
+import { isTV } from './utils/device';
 
 export default function App() {
     const [isUpdateRequired, setIsUpdateRequired] = useState(false);
     const [updateInfo, setUpdateInfo] = useState(null);
 
-    // --- HOOK 1: Status Bar & Navigation Bar ---
+    // --- HOOK 1: Status Bar & Immersive Navigation Bar ---
     useEffect(() => {
         if (Platform.OS === 'android') {
             const configureNavigation = async () => {
                 try {
-                    // Set behavior to 'sticky-immersive'
-                    await NavigationBar.setBehaviorAsync('sticky-immersive');
-                    // Hide the bar
+                    await NavigationBar.setPositionAsync('absolute');
+                    await NavigationBar.setBackgroundColorAsync('#00000000');
+                    await NavigationBar.setBehaviorAsync('overlay-swipe');
                     await NavigationBar.setVisibilityAsync('hidden');
                 } catch (e) {
-                    console.warn("NavigationBar error:", e);
+                    console.warn('NavigationBar error:', e);
                 }
             };
             configureNavigation();
+
+            let sub;
+            try {
+                sub = NavigationBar.addVisibilityListener(({ visibility }) => {
+                    if (visibility === 'visible') {
+                        setTimeout(() => {
+                            NavigationBar.setVisibilityAsync('hidden').catch(() => {});
+                        }, 2500);
+                    }
+                });
+            } catch (err) {
+                // Ignore if listener not supported in certain client hosts
+            }
+
+            return () => {
+                if (sub && sub.remove) sub.remove();
+            };
         }
     }, []);
 
-    // --- HOOK 2: Update Check, Analytics & Monetization ---
+    // --- HOOK 2: Update Check, Analytics & Orientation ---
     useEffect(() => {
-        // 1. Run Analytics & Monetization
         logScreenView('Main_App_Launch');
 
-        // 2. Run Update Checker
         const checkStatus = async () => {
             try {
                 const result = await checkForUpdates();
@@ -48,15 +63,11 @@ export default function App() {
                     setIsUpdateRequired(true);
                 }
             } catch (error) {
-                console.error("Update check failed:", error);
+                console.error('Update check failed:', error);
             }
         };
 
-
-        /////orientation
         const lockOrientation = async () => {
-            // Only attempt to lock orientation on Native (Android/iOS)
-            // Browsers have strict security restrictions for this API
             if (Platform.OS !== 'web') {
                 try {
                     if (isTV) {
@@ -65,12 +76,13 @@ export default function App() {
                         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
                     }
                 } catch (error) {
-                    console.warn("Orientation lock not supported:", error);
+                    console.warn('Orientation lock not supported:', error);
                 }
             }
         };
+
         lockOrientation();
-       checkStatus();
+        checkStatus();
     }, []);
 
     return (
@@ -81,6 +93,7 @@ export default function App() {
                 <ForceUpdateModal
                     visible={isUpdateRequired}
                     updateData={updateInfo}
+                    onDismiss={() => setIsUpdateRequired(false)}
                 />
             </SafeAreaProvider>
         </AppThemeProvider>

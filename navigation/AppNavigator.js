@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { isTV } from '../utils/device';
@@ -11,6 +11,9 @@ import { TVScreen } from '../screens/TVScreen';
 import { PlayerScreen } from '../screens/PlayerScreen';
 import { SearchScreen } from '../screens/SearchScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
+import { ProgressScreen } from '../screens/ProgressScreen';
+import { BookmarksScreen } from '../screens/BookmarksScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 import { MovieDetailScreen } from '../screens/MovieDetailScreen';
 
 // COMPONENTS
@@ -33,7 +36,6 @@ export const AppNavigator = () => {
         <View style={styles.appWrapper}>
             <Tab.Navigator
                 initialRouteName="Home"
-                // Pass props.state to SideMenu so it knows which tab is active
                 tabBar={(props) => (
                     <>
                         <BottomNav {...props} />
@@ -42,14 +44,16 @@ export const AppNavigator = () => {
                 )}
                 screenOptions={{
                     headerShown: false,
-                    // Disable swipe on TV to prevent conflict with SideMenu focus
-                    swipeEnabled: !isTV
+                    swipeEnabled: !isTV,
                 }}
             >
                 <Tab.Screen name="Home" component={createStack(HomeScreen)} />
                 <Tab.Screen name="Movies" component={createStack(MoviesScreen)} />
-                <Tab.Screen name="Search" component={createStack(SearchScreen)} />
+                <Tab.Screen name="Bookmarks" component={createStack(BookmarksScreen)} />
+                <Tab.Screen name="Progress" component={createStack(ProgressScreen)} />
+                <Tab.Screen name="Settings" component={createStack(SettingsScreen)} />
                 <Tab.Screen name="History" component={createStack(HistoryScreen)} />
+                <Tab.Screen name="Search" component={createStack(SearchScreen)} />
                 <Tab.Screen name="Tv" component={createStack(TVScreen)} />
             </Tab.Navigator>
         </View>
@@ -60,5 +64,5 @@ const styles = StyleSheet.create({
     appWrapper: {
         flex: 1,
         backgroundColor: '#000',
-    }
+    },
 });
