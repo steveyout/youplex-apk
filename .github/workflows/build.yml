@@ -41,6 +41,23 @@ jobs:
           jq '.expo.android.versionCode = ${{ github.run_number }} | .expo.version = "1.0.${{ github.run_number }}"' app.json > app.json.tmp && mv app.json.tmp app.json
           echo "Build number set to: ${{ github.run_number }}"
 
+      - name: 🔄 Sync and Build @p-stream/providers
+        continue-on-error: true
+        run: |
+          npm install -g pnpm
+          git clone --depth=1 https://github.com/steveyout/providers.git /tmp/providers-repo || true
+          if [ -d "/tmp/providers-repo" ]; then
+            cd /tmp/providers-repo
+            pnpm install --frozen-lockfile=false || true
+            pnpm run build || true
+            if [ -d "lib" ]; then
+              echo "Successfully built latest @p-stream/providers from GitHub"
+              mkdir -p $GITHUB_WORKSPACE/packages/@p-stream/providers
+              cp -r package.json lib $GITHUB_WORKSPACE/packages/@p-stream/providers/
+            fi
+            cd $GITHUB_WORKSPACE
+          fi
+
       - name: 📦 Install Dependencies
         run: npm ci --engine-strict false
 
