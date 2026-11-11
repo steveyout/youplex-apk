@@ -53,13 +53,13 @@ jobs:
             if [ -d "lib" ]; then
               echo "Successfully built latest @p-stream/providers from GitHub"
               mkdir -p $GITHUB_WORKSPACE/packages/@p-stream/providers
-              cp -r package.json lib $GITHUB_WORKSPACE/packages/@p-stream/providers/
+              cp -r lib $GITHUB_WORKSPACE/packages/@p-stream/providers/
             fi
             cd $GITHUB_WORKSPACE
           fi
 
       - name: 📦 Install Dependencies
-        run: npm ci --engine-strict false || npm install --engine-strict false
+        run: npm ci --engine-strict false || npm install --engine-strict false --ignore-scripts
 
       - name: 🚀 Setup Expo & EAS
         uses: expo/expo-github-action@v8
