@@ -12,7 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Play, Clock, Sparkles, Film, Trash2, CheckCircle2 } from 'lucide-react-native';
+import { Play, Clock, Film, Trash2 } from 'lucide-react-native';
 import { getHistory, clearHistory } from '../services/historyService';
 import { useAppTheme } from '../theme/ThemeContext';
 import { TopBar } from '../components/TopBar';
@@ -32,11 +32,11 @@ function formatTimeRemaining(position, duration) {
 }
 
 export const ProgressScreen = () => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
 
-    const [activeTab, setActiveTab] = useState('progress'); // 'progress' | 'history'
+    const [activeTab, setActiveTab] = useState('progress');
     const [allHistory, setAllHistory] = useState([]);
     const [progressItems, setProgressItems] = useState([]);
 
@@ -44,7 +44,6 @@ export const ProgressScreen = () => {
         const history = await getHistory();
         setAllHistory(history || []);
 
-        // Filter items with active progress (> 10 seconds and < 95% finished)
         const inProgress = (history || []).filter((item) => {
             if (!item.position || item.position <= 10) return false;
             if (item.duration && item.duration > 0) {
@@ -74,18 +73,24 @@ export const ProgressScreen = () => {
 
     const handleDismissProgress = async (id, season, episode) => {
         const filtered = allHistory.filter((item) => {
-            const isMatch = String(item.id) === String(id) &&
+            const isMatch =
+                String(item.id) === String(id) &&
                 String(item.season || 0) === String(season || 0) &&
                 String(item.episode || 0) === String(episode || 0);
             return !isMatch;
         });
         await AsyncStorage.setItem('@user_watch_history', JSON.stringify(filtered));
         setAllHistory(filtered);
-        setProgressItems(progressItems.filter((i) => !(
-            String(i.id) === String(id) &&
-            String(i.season || 0) === String(season || 0) &&
-            String(i.episode || 0) === String(episode || 0)
-        )));
+        setProgressItems(
+            progressItems.filter(
+                (i) =>
+                    !(
+                        String(i.id) === String(id) &&
+                        String(i.season || 0) === String(season || 0) &&
+                        String(i.episode || 0) === String(episode || 0)
+                    )
+            )
+        );
     };
 
     const handleClearAll = async () => {
@@ -94,7 +99,7 @@ export const ProgressScreen = () => {
         setProgressItems([]);
     };
 
-    const safeTopMargin = isTV ? 130 : Math.max(insets.top + 92, Platform.OS === 'ios' ? 140 : 128);
+    const safeTopMargin = isTV ? 110 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
 
     const currentData = activeTab === 'progress' ? progressItems : allHistory;
 
@@ -108,14 +113,7 @@ export const ProgressScreen = () => {
         return (
             <Pressable
                 enablesNextFocusAppearance={true}
-                style={({ focused }) => [
-                    styles.card,
-                    {
-                        backgroundColor: theme.colors.cardBg,
-                        borderColor: theme.colors.cardBorder,
-                    },
-                    focused && styles.tvFocusBorder,
-                ]}
+                style={styles.card}
                 onPress={() => handleResume(item)}
             >
                 {/* Poster with Progress Bar Overlay */}
@@ -124,12 +122,13 @@ export const ProgressScreen = () => {
                         source={{
                             uri: item.poster_path
                                 ? `https://image.tmdb.org/t/p/w300${item.poster_path}`
-                                : (item.backdrop_path ? `https://image.tmdb.org/t/p/w300${item.backdrop_path}` : 'https://via.placeholder.com/300x450'),
+                                : item.backdrop_path
+                                ? `https://image.tmdb.org/t/p/w300${item.backdrop_path}`
+                                : 'https://via.placeholder.com/300x450',
                         }}
                         style={styles.poster}
                     />
 
-                    {/* Progress Bar along bottom of thumbnail */}
                     {activeTab === 'progress' && (
                         <View style={styles.thumbnailProgressBg}>
                             <View style={[styles.thumbnailProgressFill, { width: `${percent}%` }]} />
@@ -145,14 +144,7 @@ export const ProgressScreen = () => {
 
                 {/* Details */}
                 <View style={styles.info}>
-                    <Text
-                        style={[
-                            styles.title,
-                            { color: isDarkMode ? '#FFFFFF' : '#111827' },
-                        ]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
+                    <Text style={styles.title} numberOfLines={1}>
                         {item.title || item.name}
                     </Text>
 
@@ -166,11 +158,10 @@ export const ProgressScreen = () => {
 
                     {activeTab === 'progress' ? (
                         <>
-                            {/* Progress percentage & time left */}
                             <View style={styles.progressRow}>
                                 <View style={styles.progressBarBg}>
                                     <LinearGradient
-                                        colors={['#FF4565', '#FF3030']}
+                                        colors={['#FF3B56', '#FF1E3C', '#B3001E']}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 0 }}
                                         style={[styles.progressBarFill, { width: `${percent}%` }]}
@@ -181,14 +172,14 @@ export const ProgressScreen = () => {
 
                             {Boolean(timeLeft) && (
                                 <View style={styles.timeLeftRow}>
-                                    <Clock size={12} color="#8A99A8" />
+                                    <Clock size={12} color="#98A2B3" />
                                     <Text style={styles.timeLeftText}>{timeLeft}</Text>
                                 </View>
                             )}
                         </>
                     ) : (
                         <View style={styles.timeLeftRow}>
-                            <Clock size={12} color="#8A99A8" />
+                            <Clock size={12} color="#98A2B3" />
                             <Text style={styles.timeLeftText}>
                                 {item.watchedAt ? new Date(item.watchedAt).toLocaleDateString() : 'Recently'}
                             </Text>
@@ -196,127 +187,85 @@ export const ProgressScreen = () => {
                     )}
                 </View>
 
-                {/* Resume Action & Dismiss */}
-                <View style={styles.rightActions}>
-                    <View style={styles.resumeBtn}>
-                        <LinearGradient
-                            colors={['#FF4565', '#FF3030', '#B71833']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.resumeBtnGrad}
-                        >
-                            <Play size={12} color="#FFFFFF" fill="#FFFFFF" />
-                            <Text style={styles.resumeBtnText}>
-                                {activeTab === 'progress' ? 'Resume' : 'Replay'}
-                            </Text>
-                        </LinearGradient>
-                    </View>
-
-                    <Pressable
-                        onPress={() => handleDismissProgress(item.id, item.season, item.episode)}
-                        style={styles.dismissBtn}
-                        hitSlop={6}
-                    >
-                        <Trash2 size={14} color="#8A99A8" />
-                    </Pressable>
-                </View>
+                {/* Dismiss */}
+                <Pressable
+                    style={styles.dismissBtn}
+                    onPress={() => handleDismissProgress(item.id, item.season, item.episode)}
+                    hitSlop={8}
+                >
+                    <Trash2 size={13} color="#98A2B3" />
+                </Pressable>
             </Pressable>
         );
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: '#08090C' }]}>
             <TopBar />
 
-            {/* Header safely below TopBar */}
+            {/* Header Title */}
             <View style={[styles.header, { marginTop: safeTopMargin }, isTV && styles.headerTV]}>
                 <View style={styles.headerTitleRow}>
                     <View style={styles.titleAccent} />
-                    <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
-                        Activity & Progress
-                    </Text>
+                    <Text style={styles.headerTitle}>Playback Progress</Text>
                 </View>
 
                 {currentData.length > 0 && (
-                    <Pressable
-                        onPress={handleClearAll}
-                        style={({ focused }) => [
-                            styles.clearBtnWrapper,
-                            focused && styles.tvFocusBorder,
-                        ]}
-                    >
-                        <Trash2 size={isTV ? 20 : 15} color="#FF5252" />
-                        <Text style={[styles.clearBtnText, isTV && { fontSize: 16 }]}>Clear</Text>
+                    <Pressable onPress={handleClearAll} style={styles.clearBtnWrapper}>
+                        <Trash2 size={14} color="#FF2442" />
+                        <Text style={styles.clearBtnText}>Clear All</Text>
                     </Pressable>
                 )}
             </View>
 
-            {/* Segmented Switch: [Continue Watching] | [Full History] */}
+            {/* Filter Tabs */}
             <View style={[styles.tabBar, isTV && styles.tabBarTV]}>
                 <Pressable
+                    style={[styles.tabItem, activeTab === 'progress' && styles.tabItemActive]}
                     onPress={() => setActiveTab('progress')}
-                    style={[
-                        styles.tabItem,
-                        activeTab === 'progress' && styles.tabItemActive,
-                    ]}
                 >
                     <Text
                         style={[
                             styles.tabItemText,
                             activeTab === 'progress' && styles.tabItemTextActive,
-                            { color: activeTab === 'progress' ? '#FFFFFF' : (isDarkMode ? '#8A99A8' : '#6B7280') }
                         ]}
                     >
-                        Continue Watching ({progressItems.length})
+                        In Progress ({progressItems.length})
                     </Text>
                 </Pressable>
-
                 <Pressable
+                    style={[styles.tabItem, activeTab === 'history' && styles.tabItemActive]}
                     onPress={() => setActiveTab('history')}
-                    style={[
-                        styles.tabItem,
-                        activeTab === 'history' && styles.tabItemActive,
-                    ]}
                 >
                     <Text
                         style={[
                             styles.tabItemText,
                             activeTab === 'history' && styles.tabItemTextActive,
-                            { color: activeTab === 'history' ? '#FFFFFF' : (isDarkMode ? '#8A99A8' : '#6B7280') }
                         ]}
                     >
-                        Watch History ({allHistory.length})
+                        Complete History ({allHistory.length})
                     </Text>
                 </Pressable>
             </View>
 
+            {/* Progress List */}
             <FlatList
                 data={currentData}
-                keyExtractor={(item, index) => `${item.id}-${item.season || 0}-${item.episode || 0}-${index}`}
+                keyExtractor={(item, index) =>
+                    `${item.id}-${item.season || 0}-${item.episode || 0}-${index}`
+                }
                 renderItem={renderItem}
                 ListEmptyComponent={
-                    <View style={styles.emptyWrapper}>
-                        <View
-                            style={[
-                                styles.emptyIconCircle,
-                                {
-                                    backgroundColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.12)'
-                                        : 'rgba(255, 48, 48, 0.08)',
-                                    borderColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.3)'
-                                        : 'rgba(255, 48, 48, 0.2)',
-                                },
-                            ]}
-                        >
-                            <Film size={isTV ? 56 : 42} color="#FF3030" strokeWidth={1.8} />
+                    <View style={styles.emptyContainer}>
+                        <View style={styles.emptyIconCircle}>
+                            <Film size={isTV ? 48 : 36} color="#FF2442" strokeWidth={1.8} />
                         </View>
-                        <Text style={[styles.emptyTitle, { color: isDarkMode ? '#FFFFFF' : '#111827' }]}>
+                        <Text style={styles.emptyTitle}>
                             {activeTab === 'progress' ? 'No Videos in Progress' : 'No Watch History'}
                         </Text>
                         <Text style={styles.emptySubtitle}>
                             {activeTab === 'progress'
-                                ? 'When you start streaming movies or series, your playback progress will show up here so you can pick up where you left off.'
+                                ? 'When you start streaming movies or series, your playback progress will show up here.'
                                 : 'Your watched movies and shows will be listed here automatically.'}
                         </Text>
                     </View>
@@ -324,7 +273,7 @@ export const ProgressScreen = () => {
                 contentContainerStyle={[
                     styles.listContent,
                     isTV && styles.listContentTV,
-                    { paddingBottom: 150 + insets.bottom },
+                    { paddingBottom: 110 + insets.bottom },
                 ]}
                 numColumns={isTV ? 2 : 1}
                 key={isTV ? 'tv-progress-grid' : 'mobile-progress-list'}
@@ -346,38 +295,37 @@ const styles = StyleSheet.create({
     },
     headerTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     headerTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
     },
     titleAccent: {
         width: 4,
-        height: 24,
+        height: 18,
         borderRadius: 2,
-        backgroundColor: '#FF3030',
+        backgroundColor: '#FF2442',
     },
     headerTitle: {
-        fontSize: isTV ? 32 : 22,
+        fontSize: 20,
         fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 0.3,
     },
     clearBtnWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255, 82, 82, 0.12)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 82, 82, 0.3)',
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
+        gap: 5,
     },
     clearBtnText: {
-        color: '#FF5252',
+        color: '#FF2442',
+        fontSize: 11.5,
         fontWeight: '700',
-        fontSize: 12,
     },
     tabBar: {
         flexDirection: 'row',
@@ -387,55 +335,51 @@ const styles = StyleSheet.create({
     },
     tabBarTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     tabItem: {
         paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 18,
+        paddingVertical: 7,
+        borderRadius: 14,
+        backgroundColor: '#12161F',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     tabItemActive: {
-        backgroundColor: '#FF3030',
-        borderColor: '#FF3030',
+        backgroundColor: 'rgba(255, 36, 66, 0.18)',
+        borderColor: '#FF2442',
     },
     tabItemText: {
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: '600',
+        color: '#98A2B3',
     },
     tabItemTextActive: {
-        fontWeight: '900',
+        color: '#FF2442',
+        fontWeight: '800',
     },
     listContent: {
-        paddingHorizontal: 16,
+        paddingHorizontal: 18,
     },
     listContentTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderRadius: 18,
-        padding: 12,
-        marginBottom: 14,
-        borderWidth: 1.2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 4,
-        marginHorizontal: isTV ? 8 : 0,
-        flex: isTV ? 0.5 : 1,
+        borderRadius: 16,
+        padding: 10,
+        marginBottom: 12,
+        backgroundColor: '#0F1217',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
     },
     posterContainer: {
         width: 64,
-        height: 92,
-        borderRadius: 12,
+        height: 88,
+        borderRadius: 10,
         overflow: 'hidden',
         position: 'relative',
+        backgroundColor: '#151921',
     },
     poster: {
         width: '100%',
@@ -446,12 +390,12 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: 4,
+        height: 3,
         backgroundColor: 'rgba(0,0,0,0.6)',
     },
     thumbnailProgressFill: {
-        height: '100%',
-        backgroundColor: '#FF3030',
+        height: 3,
+        backgroundColor: '#FF2442',
     },
     resumeOverlay: {
         ...StyleSheet.absoluteFillObject,
@@ -463,31 +407,32 @@ const styles = StyleSheet.create({
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: 'rgba(255, 48, 48, 0.9)',
+        backgroundColor: '#FF2442',
         justifyContent: 'center',
         alignItems: 'center',
     },
     info: {
         flex: 1,
         marginLeft: 14,
-        justifyContent: 'center',
+        marginRight: 10,
     },
     title: {
-        fontSize: isTV ? 18 : 15,
-        fontWeight: '800',
-        marginBottom: 4,
+        color: '#FFFFFF',
+        fontSize: 13.5,
+        fontWeight: '700',
+        marginBottom: 3,
     },
     episodeTag: {
-        alignSelf: 'flex-start',
-        backgroundColor: 'rgba(255, 48, 48, 0.16)',
-        paddingHorizontal: 8,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 6,
+        borderRadius: 5,
+        alignSelf: 'flex-start',
         marginBottom: 6,
     },
     episodeTagText: {
-        color: '#FF4D4D',
-        fontSize: 11,
+        color: '#FF2442',
+        fontSize: 10,
         fontWeight: '700',
     },
     progressRow: {
@@ -498,20 +443,19 @@ const styles = StyleSheet.create({
     },
     progressBarBg: {
         flex: 1,
-        height: 5,
-        borderRadius: 3,
-        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         overflow: 'hidden',
     },
     progressBarFill: {
-        height: '100%',
-        borderRadius: 3,
+        height: 4,
+        borderRadius: 2,
     },
     percentText: {
-        color: '#8A99A8',
-        fontSize: 11,
-        fontWeight: '700',
-        width: 32,
+        color: '#FF2442',
+        fontSize: 10.5,
+        fontWeight: '800',
     },
     timeLeftRow: {
         flexDirection: 'row',
@@ -519,67 +463,38 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     timeLeftText: {
-        color: '#8A99A8',
+        color: '#98A2B3',
         fontSize: 11,
-        fontWeight: '600',
-    },
-    rightActions: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginLeft: 10,
-    },
-    resumeBtn: {
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    resumeBtnGrad: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
-        gap: 4,
-    },
-    resumeBtnText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '800',
     },
     dismissBtn: {
-        padding: 6,
+        padding: 8,
     },
-    emptyWrapper: {
+    emptyContainer: {
+        paddingTop: 80,
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 60,
-        paddingHorizontal: 24,
+        paddingHorizontal: 30,
     },
     emptyIconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1.5,
         marginBottom: 16,
     },
     emptyTitle: {
-        fontSize: 20,
-        fontWeight: '900',
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '800',
         marginBottom: 8,
-        textAlign: 'center',
     },
     emptySubtitle: {
-        color: '#8A99A8',
+        color: '#98A2B3',
         fontSize: 13,
         textAlign: 'center',
         lineHeight: 18,
-        maxWidth: 320,
-    },
-    tvFocusBorder: {
-        borderWidth: 2,
-        borderColor: '#FF3030',
-        transform: [{ scale: 1.02 }],
     },
 });

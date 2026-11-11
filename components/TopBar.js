@@ -1,175 +1,103 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Platform, Image, Pressable, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
-import Svg, { Text as SvgText, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Search, Sun, Moon, Settings, Tv } from 'lucide-react-native';
+import { Search, Sparkles } from 'lucide-react-native';
+import { Text } from 'react-native-paper';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '../theme/ThemeContext';
+import { AIAssistantModal } from './AIAssistantModal';
 import { isTV } from '../utils/device';
 
 const { width } = Dimensions.get('window');
 
 export const TopBar = () => {
-    const { theme, isDarkMode, toggleTheme } = useAppTheme();
+    const { theme } = useAppTheme();
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
+    const [aiModalVisible, setAiModalVisible] = useState(false);
 
     const TV_OFFSET = 100;
     const TOPBAR_WIDTH = isTV ? width - TV_OFFSET : width;
-
-    const safeTop = isTV ? 24 : Math.max(insets.top + 8, Platform.OS === 'ios' ? 48 : 34);
+    const safeTop = isTV ? 20 : Math.max(insets.top + 6, Platform.OS === 'ios' ? 48 : 34);
 
     return (
-        <View
-            style={[
-                styles.stickyWrapper,
-                { paddingTop: safeTop },
-                isTV && {
-                    left: TV_OFFSET,
-                    width: TOPBAR_WIDTH,
-                    paddingHorizontal: 40,
-                },
-            ]}
-            pointerEvents="box-none"
-        >
-            <BlurView
-                intensity={isTV ? 55 : 85}
-                tint={isDarkMode ? 'dark' : 'light'}
+        <>
+            <View
                 style={[
-                    styles.container,
-                    isTV && styles.containerTV,
-                    {
-                        backgroundColor: theme.colors.glassBg,
-                        borderColor: theme.colors.glassBorder,
+                    styles.stickyWrapper,
+                    { paddingTop: safeTop },
+                    isTV && {
+                        left: TV_OFFSET,
+                        width: TOPBAR_WIDTH,
+                        paddingHorizontal: 40,
                     },
                 ]}
+                pointerEvents="box-none"
             >
-                <View style={styles.content}>
-                    {/* Brand Logo + Title with Reddish Gradient */}
-                    <Pressable
-                        style={styles.logoSection}
-                        onPress={() => navigation.navigate('Home')}
-                    >
-                        <View style={styles.logoRing}>
+                <BlurView
+                    intensity={isTV ? 45 : 75}
+                    tint="dark"
+                    style={[
+                        styles.container,
+                        isTV && styles.containerTV,
+                        {
+                            backgroundColor: 'rgba(8, 9, 12, 0.85)',
+                            borderColor: 'rgba(255, 255, 255, 0.08)',
+                        },
+                    ]}
+                >
+                    <View style={styles.content}>
+                        {/* Brand Logo + Title without AI word */}
+                        <Pressable
+                            style={styles.logoSection}
+                            onPress={() => navigation.navigate('Home')}
+                        >
                             <Image
                                 source={require('../assets/logo.png')}
-                                style={[styles.logoImage, isTV && styles.logoImageTV]}
+                                style={styles.brandLogoImage}
+                                resizeMode="contain"
                             />
-                        </View>
-                        <Svg height={isTV ? '42' : '32'} width={isTV ? '160' : '116'}>
-                            <Defs>
-                                <SvgGradient id="youplexRedGrad" x1="0" y1="0" x2="1" y2="0">
-                                    <Stop offset="0%" stopColor="#FF4565" stopOpacity="1" />
-                                    <Stop offset="50%" stopColor="#FF3030" stopOpacity="1" />
-                                    <Stop offset="100%" stopColor="#B71833" stopOpacity="1" />
-                                </SvgGradient>
-                            </Defs>
-                            <SvgText
-                                fill="url(#youplexRedGrad)"
-                                fontSize={isTV ? '28' : '22'}
-                                fontWeight="900"
-                                letterSpacing="1.4"
-                                x="0"
-                                y={isTV ? '31' : '23'}
+                            <View style={styles.brandTitleCol}>
+                                <Text style={styles.brandName}>YOUPLEX</Text>
+                            </View>
+                        </Pressable>
+
+                        {/* Action Buttons: AI Discover Quick Pill & Search */}
+                        <View style={styles.actionSection}>
+                            {/* AI Discover Quick Pill Button */}
+                            <Pressable
+                                onPress={() => setAiModalVisible(true)}
+                                style={styles.aiPillBtn}
                             >
-                                {process.env.EXPO_PUBLIC_APP_TITLE || 'YOUPLEX'}
-                            </SvgText>
-                        </Svg>
-                    </Pressable>
+                                <LinearGradient
+                                    colors={['rgba(255, 36, 66, 0.22)', 'rgba(255, 36, 66, 0.08)']}
+                                    style={styles.aiPillGradient}
+                                >
+                                    <Sparkles size={14} color="#FF2442" />
+                                    <Text style={styles.aiPillText}>AI Discover</Text>
+                                </LinearGradient>
+                            </Pressable>
 
-                    {/* Action Buttons: Search, Live TV, Theme Switcher, Settings */}
-                    <View style={styles.actionSection}>
-                        {/* Search Action */}
-                        <Pressable
-                            onPress={() => navigation.navigate('Search')}
-                            style={({ focused }) => [
-                                styles.actionPill,
-                                isTV && styles.tvActionWrapper,
-                                focused && styles.tvFocus,
-                                {
-                                    backgroundColor: isDarkMode
-                                        ? 'rgba(255, 255, 255, 0.08)'
-                                        : 'rgba(0, 0, 0, 0.05)',
-                                    borderColor: theme.colors.outlineVariant,
-                                },
-                            ]}
-                        >
-                            <Search
-                                color={theme.colors.onSurface}
-                                size={isTV ? 26 : 17}
-                            />
-                        </Pressable>
-
-                        {/* Live TV Shortcut */}
-                        <Pressable
-                            onPress={() => navigation.navigate('Tv')}
-                            style={({ focused }) => [
-                                styles.actionPill,
-                                isTV && styles.tvActionWrapper,
-                                focused && styles.tvFocus,
-                                {
-                                    backgroundColor: isDarkMode
-                                        ? 'rgba(255, 255, 255, 0.08)'
-                                        : 'rgba(0, 0, 0, 0.05)',
-                                    borderColor: theme.colors.outlineVariant,
-                                },
-                            ]}
-                        >
-                            <Tv
-                                color={theme.colors.onSurface}
-                                size={isTV ? 26 : 17}
-                            />
-                        </Pressable>
-
-                        {/* Theme Switcher Button */}
-                        <Pressable
-                            onPress={toggleTheme}
-                            style={({ focused }) => [
-                                styles.actionPill,
-                                isTV && styles.tvActionWrapper,
-                                focused && styles.tvFocus,
-                                {
-                                    backgroundColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.12)'
-                                        : 'rgba(255, 48, 48, 0.08)',
-                                    borderColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.3)'
-                                        : 'rgba(255, 48, 48, 0.2)',
-                                },
-                            ]}
-                        >
-                            {isDarkMode ? (
-                                <Sun color="#FFD700" size={isTV ? 26 : 17} />
-                            ) : (
-                                <Moon color="#FF3030" size={isTV ? 26 : 17} />
-                            )}
-                        </Pressable>
-
-                        {/* Settings Button */}
-                        <Pressable
-                            onPress={() => navigation.navigate('Settings')}
-                            style={({ focused }) => [
-                                styles.actionPill,
-                                isTV && styles.tvActionWrapper,
-                                focused && styles.tvFocus,
-                                {
-                                    backgroundColor: isDarkMode
-                                        ? 'rgba(255, 255, 255, 0.08)'
-                                        : 'rgba(0, 0, 0, 0.05)',
-                                    borderColor: theme.colors.outlineVariant,
-                                },
-                            ]}
-                        >
-                            <Settings
-                                color={theme.colors.onSurface}
-                                size={isTV ? 26 : 17}
-                            />
-                        </Pressable>
+                            {/* Search Action */}
+                            <Pressable
+                                onPress={() => navigation.navigate('Search')}
+                                style={styles.searchIconBtn}
+                            >
+                                <Search color="#EAECF0" size={18} />
+                            </Pressable>
+                        </View>
                     </View>
-                </View>
-            </BlurView>
-        </View>
+                </BlurView>
+            </View>
+
+            {/* In-app AI Movie Assistant Modal */}
+            <AIAssistantModal
+                visible={aiModalVisible}
+                onClose={() => setAiModalVisible(false)}
+            />
+        </>
     );
 };
 
@@ -179,76 +107,75 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 1000,
+        zIndex: 999,
         paddingHorizontal: 16,
     },
     container: {
-        height: 54,
-        borderRadius: 27,
+        borderRadius: 22,
+        borderWidth: 1,
         overflow: 'hidden',
-        borderWidth: 1.2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
     },
     containerTV: {
-        height: 80,
-        borderRadius: 40,
+        borderRadius: 24,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
     },
     content: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
     },
     logoSection: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    logoRing: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
+    brandLogoImage: {
+        width: 32,
+        height: 32,
+        marginRight: 9,
+    },
+    brandTitleCol: {
         justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 10,
-        backgroundColor: 'rgba(255, 48, 48, 0.1)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 48, 48, 0.25)',
     },
-    logoImage: {
-        width: 20,
-        height: 20,
-    },
-    logoImageTV: {
-        width: 36,
-        height: 36,
+    brandName: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '900',
+        letterSpacing: 1.4,
     },
     actionSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
     },
-    actionPill: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+    aiPillBtn: {
+        borderRadius: 14,
+        overflow: 'hidden',
         borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.35)',
+    },
+    aiPillGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 11,
+        paddingVertical: 6,
+        gap: 5,
+    },
+    aiPillText: {
+        color: '#FF2442',
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    searchIconBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    tvActionWrapper: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-    },
-    tvFocus: {
-        backgroundColor: 'rgba(255, 48, 48, 0.3)',
-        borderWidth: 2.5,
-        borderColor: '#FF3030',
-        transform: [{ scale: 1.1 }],
     },
 });

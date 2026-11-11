@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Pressable, Animated, Dimensions } from 'react-native';
+import { StyleSheet, View, Pressable, Animated, Dimensions, Image } from 'react-native';
 import { Text } from 'react-native-paper';
-import { Home, Film, Tv, Search, Clock, PlayCircle, Settings, Bookmark } from 'lucide-react-native';
+import { Home, Film, Tv, Search, Clock, Settings, Bookmark } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAppTheme } from '../theme/ThemeContext';
 import { isTV } from '../utils/device';
@@ -12,7 +12,7 @@ const COLLAPSED_WIDTH = 84;
 const EXPANDED_WIDTH = 260;
 
 export const SideMenu = ({ state }) => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const navigation = useNavigation();
 
     // Animation Refs
@@ -49,8 +49,7 @@ export const SideMenu = ({ state }) => {
         { label: 'Home', icon: Home, route: 'Home' },
         { label: 'Movies', icon: Film, route: 'Movies' },
         { label: 'TV Series', icon: Tv, route: 'Tv' },
-        { label: 'My List', icon: Bookmark, route: 'Bookmarks' },
-        { label: 'Progress', icon: PlayCircle, route: 'Progress' },
+        { label: 'Watchlist', icon: Bookmark, route: 'Bookmarks' },
         { label: 'History', icon: Clock, route: 'History' },
         { label: 'Search', icon: Search, route: 'Search' },
         { label: 'Settings', icon: Settings, route: 'Settings' },
@@ -77,9 +76,9 @@ export const SideMenu = ({ state }) => {
                     <View style={styles.itemInner}>
                         <View style={styles.iconContainer}>
                             <item.icon
-                                size={26}
-                                color={focused || isActive ? '#FF3030' : (isDarkMode ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.6)')}
-                                strokeWidth={focused || isActive ? 2.6 : 2}
+                                size={24}
+                                color={focused || isActive ? '#FF2442' : 'rgba(255,255,255,0.65)'}
+                                strokeWidth={focused || isActive ? 2.5 : 1.8}
                             />
                             {isActive && <View style={styles.activePill} />}
                         </View>
@@ -89,7 +88,7 @@ export const SideMenu = ({ state }) => {
                                 numberOfLines={1}
                                 style={[
                                     styles.menuLabel,
-                                    { color: focused || isActive ? (isDarkMode ? '#FFFFFF' : '#111827') : (isDarkMode ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.6)') },
+                                    { color: focused || isActive ? '#FFFFFF' : 'rgba(255,255,255,0.65)' },
                                     (focused || isActive) && { fontWeight: '800' },
                                 ]}
                             >
@@ -121,13 +120,17 @@ export const SideMenu = ({ state }) => {
                     styles.container,
                     {
                         width: widthAnim,
-                        backgroundColor: isDarkMode ? 'rgba(10, 13, 18, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                        borderRightColor: theme.colors.outlineVariant,
+                        backgroundColor: 'rgba(8, 9, 12, 0.96)',
+                        borderRightColor: 'rgba(255, 255, 255, 0.08)',
                     },
                 ]}
             >
                 <View style={styles.topSection}>
-                    <View style={styles.logoDot} />
+                    <Image
+                        source={require('../assets/logo.png')}
+                        style={{ width: 36, height: 36 }}
+                        resizeMode="contain"
+                    />
                 </View>
 
                 <View style={styles.menuList}>
@@ -139,82 +142,71 @@ export const SideMenu = ({ state }) => {
 };
 
 const styles = StyleSheet.create({
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        zIndex: 998,
+    },
     container: {
         position: 'absolute',
         top: 0,
-        left: 0,
         bottom: 0,
-        zIndex: 2000,
+        left: 0,
+        zIndex: 999,
         borderRightWidth: 1,
-        elevation: 16,
-        paddingVertical: 36,
-        shadowColor: '#000',
-        shadowOffset: { width: 4, height: 0 },
-        shadowOpacity: 0.35,
-        shadowRadius: 16,
-    },
-    overlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
-        zIndex: 1999,
+        justifyContent: 'flex-start',
+        paddingVertical: 28,
     },
     topSection: {
         height: 60,
-        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 28,
-    },
-    logoDot: {
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        backgroundColor: '#FF3030',
-        shadowColor: '#FF3030',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 10,
-        elevation: 6,
+        justifyContent: 'center',
+        marginBottom: 20,
     },
     menuList: {
         flex: 1,
-        gap: 16,
+        gap: 10,
     },
     menuItem: {
         height: 52,
         justifyContent: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
+        borderRadius: 14,
+        marginHorizontal: 10,
     },
     menuItemActive: {
-        backgroundColor: 'rgba(255, 48, 48, 0.1)',
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
     },
     menuItemFocused: {
-        backgroundColor: 'rgba(255, 48, 48, 0.25)',
-        transform: [{ scale: 1.05 }],
+        backgroundColor: 'rgba(255, 36, 66, 0.22)',
+        borderColor: '#FF2442',
+        borderWidth: 1.5,
     },
     itemInner: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     iconContainer: {
-        width: 44,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
     },
     activePill: {
         position: 'absolute',
-        left: -14,
+        left: -12,
         width: 4,
-        height: 24,
+        height: 18,
         borderRadius: 2,
-        backgroundColor: '#FF3030',
+        backgroundColor: '#FF2442',
     },
     labelWrapper: {
         marginLeft: 16,
-        flex: 1,
+        overflow: 'hidden',
     },
     menuLabel: {
         fontSize: 16,
-        fontWeight: '600',
+        letterSpacing: 0.3,
     },
 });

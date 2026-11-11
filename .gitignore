@@ -41,3 +41,8 @@ yarn-error.*
 google-services.json
 
 app-example
+
+.idea/
+
+pnpm-lock.yaml
+pnpm-workspace.yaml

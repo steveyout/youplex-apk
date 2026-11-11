@@ -20,7 +20,7 @@ import { isTV } from '../utils/device';
 const { width } = Dimensions.get('window');
 
 export const HistoryScreen = () => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const insets = useSafeAreaInsets();
     const [history, setHistory] = useState([]);
     const navigation = useNavigation();
@@ -38,7 +38,7 @@ export const HistoryScreen = () => {
         setHistory([]);
     };
 
-    const safeTopMargin = isTV ? 130 : Math.max(insets.top + 92, Platform.OS === 'ios' ? 140 : 128);
+    const safeTopMargin = isTV ? 110 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
 
     const renderItem = ({ item }) => {
         const isShow = item.type === 'tv' || item.season;
@@ -46,14 +46,7 @@ export const HistoryScreen = () => {
         return (
             <Pressable
                 enablesNextFocusAppearance={true}
-                style={({ focused }) => [
-                    styles.card,
-                    {
-                        backgroundColor: theme.colors.cardBg,
-                        borderColor: theme.colors.cardBorder,
-                    },
-                    focused && styles.tvFocusBorder,
-                ]}
+                style={styles.card}
                 onPress={() =>
                     navigation.navigate('Player', {
                         id: item.id,
@@ -69,19 +62,12 @@ export const HistoryScreen = () => {
                     source={{
                         uri: item.poster_path
                             ? `https://image.tmdb.org/t/p/w300${item.poster_path}`
-                            : (item.image || 'https://via.placeholder.com/300x450'),
+                            : item.image || 'https://via.placeholder.com/300x450',
                     }}
                     style={styles.poster}
                 />
                 <View style={styles.info}>
-                    <Text
-                        style={[
-                            styles.title,
-                            { color: isDarkMode ? '#FFFFFF' : '#111827' },
-                        ]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
+                    <Text style={styles.title} numberOfLines={1}>
                         {item.title || item.name}
                     </Text>
 
@@ -94,7 +80,7 @@ export const HistoryScreen = () => {
                     )}
 
                     <View style={styles.dateRow}>
-                        <Clock size={isTV ? 16 : 12} color="#8A99A8" />
+                        <Clock size={12} color="#98A2B3" />
                         <Text style={styles.date}>
                             {item.watchedAt ? new Date(item.watchedAt).toLocaleDateString() : 'Recently'}
                         </Text>
@@ -102,39 +88,26 @@ export const HistoryScreen = () => {
                 </View>
 
                 <View style={styles.playIconContainer}>
-                    <Play color="#FF3030" size={18} fill="#FF3030" />
+                    <Play color="#FFFFFF" size={14} fill="#FFFFFF" />
                 </View>
             </Pressable>
         );
     };
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: '#08090C' }]}>
             <TopBar />
 
             <View style={[styles.header, { marginTop: safeTopMargin }, isTV && styles.headerTV]}>
                 <View style={styles.headerTitleRow}>
                     <View style={styles.titleAccent} />
-                    <Text
-                        style={[
-                            styles.headerTitle,
-                            { color: theme.colors.onBackground },
-                        ]}
-                    >
-                        Watch History
-                    </Text>
+                    <Text style={styles.headerTitle}>Watch History</Text>
                 </View>
 
                 {history.length > 0 && (
-                    <Pressable
-                        onPress={handleClear}
-                        style={({ focused }) => [
-                            styles.clearBtnWrapper,
-                            focused && styles.clearFocus,
-                        ]}
-                    >
-                        <Trash2 size={isTV ? 24 : 17} color="#FF5252" />
-                        <Text style={[styles.clearBtn, isTV && { fontSize: 18 }]}>Clear All</Text>
+                    <Pressable onPress={handleClear} style={styles.clearBtnWrapper}>
+                        <Trash2 size={14} color="#FF2442" />
+                        <Text style={styles.clearBtn}>Clear All</Text>
                     </Pressable>
                 )}
             </View>
@@ -147,29 +120,10 @@ export const HistoryScreen = () => {
                 renderItem={renderItem}
                 ListEmptyComponent={
                     <View style={styles.emptyWrapper}>
-                        <View
-                            style={[
-                                styles.emptyIconCircle,
-                                {
-                                    backgroundColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.12)'
-                                        : 'rgba(255, 48, 48, 0.08)',
-                                    borderColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.25)'
-                                        : 'rgba(255, 48, 48, 0.15)',
-                                },
-                            ]}
-                        >
-                            <Clock size={isTV ? 64 : 44} color="#FF3030" strokeWidth={1.8} />
+                        <View style={styles.emptyIconCircle}>
+                            <Clock size={isTV ? 48 : 36} color="#FF2442" strokeWidth={1.8} />
                         </View>
-                        <Text
-                            style={[
-                                styles.emptyTitle,
-                                { color: isDarkMode ? '#FFFFFF' : '#111827' },
-                            ]}
-                        >
-                            Your history is clean
-                        </Text>
+                        <Text style={styles.emptyTitle}>No Streaming History</Text>
                         <Text style={styles.emptySubtitle}>
                             Movies and series you stream will appear here for easy resumption.
                         </Text>
@@ -178,7 +132,7 @@ export const HistoryScreen = () => {
                 contentContainerStyle={[
                     styles.listContent,
                     isTV && styles.listContentTV,
-                    { paddingBottom: 150 + insets.bottom },
+                    { paddingBottom: 110 + insets.bottom },
                 ]}
                 numColumns={isTV ? 2 : 1}
                 key={isTV ? 'tv-history-grid' : 'mobile-history-list'}
@@ -196,147 +150,131 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        marginBottom: 20,
+        marginBottom: 16,
     },
     headerTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     headerTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
     },
     titleAccent: {
         width: 4,
-        height: 22,
+        height: 18,
         borderRadius: 2,
-        backgroundColor: '#FF3030',
+        backgroundColor: '#FF2442',
     },
     headerTitle: {
-        fontSize: isTV ? 32 : 22,
+        fontSize: 20,
         fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 0.3,
     },
     clearBtnWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255, 82, 82, 0.14)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 82, 82, 0.3)',
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
+        gap: 5,
     },
     clearBtn: {
-        color: '#FF5252',
+        color: '#FF2442',
+        fontSize: 12,
         fontWeight: '700',
-        fontSize: 13,
-    },
-    clearFocus: {
-        borderColor: '#FF5252',
-        borderWidth: 2,
-        transform: [{ scale: 1.05 }],
     },
     listContent: {
-        paddingHorizontal: 16,
+        paddingHorizontal: 18,
     },
     listContentTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     card: {
         flexDirection: 'row',
-        alignItems: 'center',
+        backgroundColor: '#0F1217',
         borderRadius: 16,
-        padding: 12,
-        marginBottom: 14,
-        borderWidth: 1.2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 4,
-        marginHorizontal: isTV ? 8 : 0,
-        flex: isTV ? 0.5 : 1,
+        padding: 10,
+        alignItems: 'center',
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
     },
     poster: {
-        width: 58,
+        width: 60,
         height: 84,
         borderRadius: 10,
+        backgroundColor: '#151921',
     },
     info: {
         flex: 1,
         marginLeft: 14,
-        justifyContent: 'center',
+        marginRight: 10,
     },
     title: {
-        fontSize: isTV ? 18 : 15,
+        color: '#FFFFFF',
+        fontSize: 14,
         fontWeight: '700',
         marginBottom: 4,
     },
     episodeBadge: {
-        alignSelf: 'flex-start',
-        backgroundColor: 'rgba(255, 48, 48, 0.15)',
-        paddingHorizontal: 6,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        paddingHorizontal: 7,
         paddingVertical: 2,
-        borderRadius: 4,
+        borderRadius: 6,
+        alignSelf: 'flex-start',
         marginBottom: 6,
     },
     episodeText: {
-        color: '#FF4D4D',
-        fontSize: 11,
+        color: '#FF2442',
+        fontSize: 10.5,
         fontWeight: '700',
     },
     dateRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: 5,
     },
     date: {
-        color: '#8A99A8',
+        color: '#98A2B3',
         fontSize: 11,
     },
     playIconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255, 48, 48, 0.15)',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FF2442',
         justifyContent: 'center',
         alignItems: 'center',
-        marginLeft: 10,
     },
     emptyWrapper: {
+        paddingTop: 80,
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 60,
-        paddingHorizontal: 24,
+        paddingHorizontal: 30,
     },
     emptyIconCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1.5,
         marginBottom: 16,
     },
     emptyTitle: {
-        fontSize: 20,
-        fontWeight: '900',
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '800',
         marginBottom: 8,
-        textAlign: 'center',
     },
     emptySubtitle: {
-        color: '#8A99A8',
+        color: '#98A2B3',
         fontSize: 13,
         textAlign: 'center',
         lineHeight: 18,
-        maxWidth: 300,
-    },
-    tvFocusBorder: {
-        borderWidth: 2,
-        borderColor: '#FF3030',
-        transform: [{ scale: 1.02 }],
     },
 });

@@ -1,14 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    StyleSheet, View, ScrollView, Image, ActivityIndicator,
-    Pressable, FlatList, Platform, Dimensions
+    StyleSheet,
+    View,
+    ScrollView,
+    Image,
+    ActivityIndicator,
+    Pressable,
+    FlatList,
+    Dimensions,
+    Share,
 } from 'react-native';
-import { Text, Button, Surface, Chip } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import RNPickerSelect from 'react-native-picker-select';
+import {
+    ChevronLeft,
+    Play,
+    Plus,
+    Check,
+    Share2,
+    Star,
+    Flame,
+    Clock,
+    Server,
+    DownloadCloud,
+} from 'lucide-react-native';
 import { useAppTheme } from '../theme/ThemeContext';
-import { ChevronLeft, PlayCircle, ListFilter, Users, ChevronDown, Plus, Check, Play, Share2 } from 'lucide-react-native';
+import { DetailSkeleton } from '../components/SkeletonLoader';
 import { getDetails, getSeasonDetails, getCredits, IMAGE_PATH } from '../services/api';
 import { isBookmarked, toggleBookmark } from '../services/bookmarksService';
 import { isTV } from '../utils/device';
@@ -16,8 +34,10 @@ import { isTV } from '../utils/device';
 const { width, height } = Dimensions.get('window');
 
 export const MovieDetailScreen = ({ navigation, route }) => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const insets = useSafeAreaInsets();
+    const { id, type = 'movie' } = route.params;
+
     const [item, setItem] = useState(null);
     const [cast, setCast] = useState([]);
     const [episodes, setEpisodes] = useState([]);
@@ -25,9 +45,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
     const [loading, setLoading] = useState(true);
     const [epLoading, setEpLoading] = useState(false);
     const [bookmarked, setBookmarked] = useState(false);
-
-    const pickerRef = useRef(null);
-    const { id, type = 'movie' } = route.params;
+    const [readMore, setReadMore] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -38,17 +56,20 @@ export const MovieDetailScreen = ({ navigation, route }) => {
         try {
             const [details, creditsData] = await Promise.all([
                 getDetails(id, type),
-                getCredits(id, type)
+                getCredits(id, type),
             ]);
             setItem(details);
             setCast(creditsData?.cast?.slice(0, 15) || []);
+
             if (type === 'tv' && details?.seasons?.length > 0) {
-                const firstSeasonNum = details.seasons[0].season_number || 1;
+                // Filter out season 0 (specials) if regular seasons exist
+                const validSeasons = details.seasons.filter((s) => s.season_number > 0);
+                const firstSeasonNum = validSeasons[0]?.season_number || details.seasons[0].season_number || 1;
                 setSelectedSeason(firstSeasonNum);
                 loadSeason(firstSeasonNum);
             }
         } catch (error) {
-            console.error("Fetch Error:", error);
+            console.error('Fetch Error:', error);
         } finally {
             setLoading(false);
         }
@@ -61,6 +82,11 @@ export const MovieDetailScreen = ({ navigation, route }) => {
         setEpLoading(false);
     };
 
+    const handleSelectSeason = (seasonNum) => {
+        setSelectedSeason(seasonNum);
+        loadSeason(seasonNum);
+    };
+
     const handleToggleBookmark = async () => {
         if (!item) return;
         const newState = await toggleBookmark({
@@ -70,451 +96,683 @@ export const MovieDetailScreen = ({ navigation, route }) => {
         setBookmarked(newState);
     };
 
-    if (loading) return (
-        <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-            <ActivityIndicator size="large" color="#FF3030" />
-        </View>
-    );
+    const handleShare = async () => {
+        if (!item) return;
+        try {
+            await Share.share({
+                message: `Check out ${item.title || item.name} on YouPlex!`,
+            });
+        } catch (e) {}
+    };
 
-    if (!item) return (
-        <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-            <Text style={{ color: theme.colors.onBackground }}>Content not found.</Text>
-        </View>
-    );
+    if (loading) {
+        return <DetailSkeleton />;
+    }
+
+    if (!item) {
+        return (
+            <View style={[styles.centered, { backgroundColor: '#08090C' }]}>
+                <Text style={{ color: '#FFFFFF' }}>Content not found.</Text>
+            </View>
+        );
+    }
 
     const backdropUri = item.backdrop_path
-        ? `${IMAGE_PATH}${item.backdrop_path}`
+        ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
         : item.poster_path
         ? `${IMAGE_PATH}${item.poster_path}`
         : 'https://via.placeholder.com/1280x720';
 
+    const displayTitle = item.title || item.name || '';
+    const releaseYear = (item.release_date || item.first_air_date || '').split('-')[0] || '';
+    const ratingVal = item.vote_average ? item.vote_average.toFixed(1) : '8.2';
+    const runtimeStr = item.runtime
+        ? `${Math.floor(item.runtime / 60)}h ${item.runtime % 60}m`
+        : item.episode_run_time?.[0]
+        ? `${item.episode_run_time[0]}m/ep`
+        : '120m';
+
+    const genresList = item.genres?.map((g) => g.name).slice(0, 3).join(' • ') || 'Feature';
+    const seasons = (item.seasons || []).filter((s) => s.season_number > 0);
+
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.container}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={[
-                    isTV && styles.tvScrollContent,
-                    { paddingBottom: 100 + insets.bottom }
-                ]}
+                contentContainerStyle={{ paddingBottom: 60 + insets.bottom }}
             >
-                {/* BACKDROP HEADER */}
-                <View style={[styles.header, isTV && styles.headerTV]}>
-                    <Image
-                        source={{ uri: backdropUri }}
-                        style={styles.backdrop}
-                    />
+                {/* --- 1. HERO BACKDROP BANNER --- */}
+                <View style={styles.backdropContainer}>
+                    <Image source={{ uri: backdropUri }} style={styles.backdropImage} />
+
+                    {/* Multi-step gradient fade */}
                     <LinearGradient
-                        colors={isTV
-                            ? ['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.4)', theme.colors.background]
-                            : ['rgba(0,0,0,0.7)', 'transparent', theme.colors.background]
-                        }
-                        style={styles.gradient}
-                        start={isTV ? { x: 0, y: 0.5 } : { x: 0.5, y: 0 }}
-                        end={isTV ? { x: 1, y: 0.5 } : { x: 0.5, y: 1 }}
+                        colors={[
+                            'rgba(8, 9, 12, 0.45)',
+                            'transparent',
+                            'rgba(8, 9, 12, 0.7)',
+                            '#08090C',
+                        ]}
+                        style={styles.backdropGradient}
                     />
 
-                    {/* Back Button with notch safe area */}
-                    <Pressable
-                        style={({ focused }) => [
-                            styles.backButton,
-                            { top: isTV ? 40 : Math.max(insets.top + 10, 36) },
-                            focused && styles.tvFocusBorder,
+                    {/* Floating Controls Header */}
+                    <View
+                        style={[
+                            styles.topNavRow,
+                            { top: Math.max(insets.top + 8, 38) },
                         ]}
-                        onPress={() => navigation.goBack()}
                     >
-                        <ChevronLeft color="white" size={isTV ? 32 : 24} />
-                    </Pressable>
-                </View>
+                        <Pressable onPress={() => navigation.goBack()} style={styles.navCircleBtn}>
+                            <ChevronLeft color="#FFFFFF" size={22} />
+                        </Pressable>
 
-                {/* MAIN CONTENT AREA */}
-                <View style={[styles.content, isTV && styles.contentTV]}>
-
-                    {/* LEFT COLUMN: Metadata & Actions */}
-                    <View style={isTV ? styles.tvMainColumn : null}>
-                        <Text style={[styles.title, isTV && styles.titleTV, { color: isDarkMode ? '#FFFFFF' : '#111827' }]}>
-                            {item.title || item.name}
-                        </Text>
-
-                        {/* Meta Tags: Rating, Year, Duration */}
-                        <View style={styles.metaRow}>
-                            {item.vote_average ? (
-                                <View style={styles.ratingBadge}>
-                                    <Text style={styles.ratingBadgeText}>★ {item.vote_average.toFixed(1)}</Text>
-                                </View>
-                            ) : null}
-                            <Text style={styles.metaText}>
-                                {(item.release_date || item.first_air_date || '').split('-')[0]}
-                            </Text>
-                            {item.runtime ? (
-                                <Text style={styles.metaText}>{Math.floor(item.runtime / 60)}h {item.runtime % 60}m</Text>
-                            ) : null}
-                            <View style={styles.hdPill}>
-                                <Text style={styles.hdPillText}>4K ULTRA HD</Text>
-                            </View>
-                        </View>
-
-                        {/* Genres */}
-                        <View style={styles.tagContainer}>
-                            {item.genres?.map((genre) => (
-                                <View
-                                    key={genre.id}
-                                    style={[styles.tag, { backgroundColor: isDarkMode ? 'rgba(255, 48, 48, 0.14)' : 'rgba(255, 48, 48, 0.08)', borderColor: 'rgba(255, 48, 48, 0.25)' }]}
-                                >
-                                    <Text style={styles.tagText}>{genre.name}</Text>
-                                </View>
-                            ))}
-                        </View>
-
-                        {/* Overview */}
-                        <Text style={[styles.overview, isTV && styles.overviewTV, { color: isDarkMode ? '#C4CDD5' : '#4B5563' }]}>
-                            {item.overview}
-                        </Text>
-
-                        {/* ACTION ROW: Watch Now & Netflix My List Button */}
-                        <View style={styles.actionRow}>
-                            {type === 'movie' && (
-                                <Pressable
-                                    hasTVPreferredFocus={true}
-                                    style={({ focused }) => [
-                                        styles.mainPlayBtn,
-                                        focused && styles.tvFocusScale
-                                    ]}
-                                    onPress={() => navigation.navigate('Player', {
-                                        id: item.id, type: 'movie', item: item
-                                    })}
-                                >
-                                    <LinearGradient
-                                        colors={['#FF4565', '#FF3030', '#B71833']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={styles.playBtnGradient}
-                                    >
-                                        <Play color="#FFFFFF" size={20} fill="#FFFFFF" />
-                                        <Text style={styles.playBtnText}>WATCH NOW</Text>
-                                    </LinearGradient>
-                                </Pressable>
-                            )}
-
-                            {/* Netflix-Style "My List" Toggle Button */}
-                            <Pressable
-                                style={({ focused }) => [
-                                    styles.myListBtn,
-                                    bookmarked && styles.myListBtnActive,
-                                    focused && styles.tvFocusScale,
-                                ]}
-                                onPress={handleToggleBookmark}
-                            >
-                                {bookmarked ? (
-                                    <Check color="#10B981" size={isTV ? 24 : 18} strokeWidth={2.5} />
-                                ) : (
-                                    <Plus color="#FFFFFF" size={isTV ? 24 : 18} strokeWidth={2.5} />
-                                )}
-                                <Text
-                                    style={[
-                                        styles.myListBtnText,
-                                        bookmarked && { color: '#10B981' }
-                                    ]}
-                                >
-                                    {bookmarked ? 'In My List' : 'My List'}
-                                </Text>
+                        <View style={styles.topRightActions}>
+                            <Pressable onPress={handleShare} style={styles.navCircleBtn}>
+                                <Share2 color="#FFFFFF" size={18} />
                             </Pressable>
-                        </View>
-
-                        {/* CAST SECTION */}
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Users size={isTV ? 28 : 18} color="#FF3030" style={{ marginRight: 8 }} />
-                                <Text style={[styles.sectionTitle, isTV && styles.sectionTitleTV, { color: theme.colors.onBackground }]}>
-                                    Top Cast
-                                </Text>
-                            </View>
-                            <FlatList
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                data={cast}
-                                keyExtractor={(actor) => actor.id.toString()}
-                                renderItem={({ item: actor }) => (
-                                    <View style={styles.castCard}>
-                                        <Image
-                                            source={{ uri: actor.profile_path ? `${IMAGE_PATH}${actor.profile_path}` : 'https://via.placeholder.com/150' }}
-                                            style={styles.castImage}
-                                        />
-                                        <Text style={[styles.castName, { color: isDarkMode ? '#FFFFFF' : '#111827' }]} numberOfLines={1}>
-                                            {actor.name}
-                                        </Text>
-                                    </View>
+                            <Pressable onPress={handleToggleBookmark} style={styles.navCircleBtn}>
+                                {bookmarked ? (
+                                    <Check color="#FF2442" size={20} />
+                                ) : (
+                                    <Plus color="#FFFFFF" size={20} />
                                 )}
-                            />
+                            </Pressable>
                         </View>
                     </View>
 
-                    {/* RIGHT COLUMN: Episodes (TV Shows) */}
-                    {type === 'tv' && (
-                        <View style={[styles.section, isTV && styles.tvSideColumn]}>
-                            <View style={styles.rowBetween}>
-                                <View style={styles.sectionHeader}>
-                                    <ListFilter size={isTV ? 28 : 18} color="#FF3030" style={{ marginRight: 8 }} />
-                                    <Text style={[styles.sectionTitle, isTV && styles.sectionTitleTV, { color: theme.colors.onBackground }]}>
-                                        Episodes
-                                    </Text>
-                                </View>
-
-                                {item.seasons?.length > 0 && (
-                                    <View style={[styles.pickerWrapper, isTV && styles.pickerWrapperTV]}>
-                                        <Pressable
-                                            onPress={() => pickerRef.current?.togglePicker()}
-                                            style={styles.pickerPressable}
-                                        >
-                                            <View style={styles.pickerVisualContent}>
-                                                <Text style={[styles.pickerText, { color: '#FF3030' }]}>
-                                                    Season {selectedSeason}
-                                                </Text>
-                                                <ChevronDown size={18} color="#FF3030" />
-                                            </View>
-                                        </Pressable>
-
-                                        <View style={styles.hiddenPickerContainer}>
-                                            <RNPickerSelect
-                                                ref={pickerRef}
-                                                value={selectedSeason}
-                                                onValueChange={(val) => {
-                                                    if (val) {
-                                                        setSelectedSeason(val);
-                                                        loadSeason(val);
-                                                    }
-                                                }}
-                                                items={item.seasons.map(s => ({
-                                                    label: s.name || `Season ${s.season_number}`,
-                                                    value: s.season_number
-                                                }))}
-                                            />
-                                        </View>
-                                    </View>
-                                )}
+                    {/* Hero Title & Primary Tag */}
+                    <View style={styles.heroInfoOverlay}>
+                        <View style={styles.matchBadgeRow}>
+                            <View style={styles.matchBadge}>
+                                <Flame color="#FF2442" size={13} />
+                                <Text style={styles.matchText}>99% Match by AI</Text>
                             </View>
-
-                            {epLoading ? (
-                                <ActivityIndicator color="#FF3030" style={{ marginTop: 20 }} />
-                            ) : (
-                                <FlatList
-                                    data={episodes}
-                                    keyExtractor={(ep) => ep.id.toString()}
-                                    scrollEnabled={false}
-                                    renderItem={({ item: ep }) => (
-                                        <Pressable
-                                            enablesNextFocusAppearance={true}
-                                            style={({ focused }) => [
-                                                styles.episodeCard,
-                                                focused && styles.tvFocusBorder
-                                            ]}
-                                            onPress={() => navigation.navigate('Player', {
-                                                id: item.id,
-                                                type: 'tv',
-                                                season: selectedSeason,
-                                                episode: ep.episode_number,
-                                                item: item
-                                            })}
-                                        >
-                                            <Surface style={[styles.episodeInner, { backgroundColor: theme.colors.cardBg, borderColor: theme.colors.cardBorder }]} elevation={1}>
-                                                <View style={styles.epImageContainer}>
-                                                    <Image
-                                                        source={{
-                                                            uri: ep.still_path
-                                                                ? `${IMAGE_PATH}${ep.still_path}`
-                                                                : (item.backdrop_path ? `${IMAGE_PATH}${item.backdrop_path}` : 'https://via.placeholder.com/300x170')
-                                                        }}
-                                                        style={styles.epImage}
-                                                    />
-                                                    <View style={styles.epPlayOverlay}>
-                                                        <PlayCircle size={28} color="#FF3030" />
-                                                    </View>
-                                                </View>
-                                                <View style={styles.epInfo}>
-                                                    <Text style={[styles.epTitle, { color: isDarkMode ? '#FFFFFF' : '#111827' }]} numberOfLines={1}>
-                                                        {ep.episode_number}. {ep.name}
-                                                    </Text>
-                                                    <Text style={[styles.epOverview, { color: '#8A99A8' }]} numberOfLines={2}>
-                                                        {ep.overview || "No description available."}
-                                                    </Text>
-                                                </View>
-                                            </Surface>
-                                        </Pressable>
-                                    )}
-                                />
-                            )}
+                            <View style={styles.qualityTag}>
+                                <Text style={styles.qualityText}>4K ULTRA HD</Text>
+                            </View>
                         </View>
+
+                        <Text style={styles.detailTitle}>{displayTitle}</Text>
+
+                        {/* Metadata Row */}
+                        <View style={styles.metaRow}>
+                            <Text style={styles.metaItem}>{releaseYear}</Text>
+                            <Text style={styles.metaDot}>•</Text>
+                            <View style={styles.ratingBox}>
+                                <Star color="#FFC107" size={13} fill="#FFC107" />
+                                <Text style={styles.ratingText}>{ratingVal}</Text>
+                            </View>
+                            <Text style={styles.metaDot}>•</Text>
+                            <Text style={styles.metaItem}>{runtimeStr}</Text>
+                            <Text style={styles.metaDot}>•</Text>
+                            <View style={styles.pgBadge}>
+                                <Text style={styles.pgBadgeText}>
+                                    {type === 'tv' ? 'TV-MA' : 'PG-13'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <Text style={styles.genresText}>{genresList}</Text>
+                    </View>
+                </View>
+
+                {/* --- 2. ACTION BUTTONS --- */}
+                <View style={styles.actionsContainer}>
+                    {/* Primary Watch Now Button */}
+                    <Pressable
+                        onPress={() =>
+                            navigation.navigate('Player', {
+                                id,
+                                type,
+                                item,
+                                season: selectedSeason,
+                                episode: 1,
+                            })
+                        }
+                        style={styles.mainPlayBtn}
+                    >
+                        <LinearGradient
+                            colors={['#FF3B56', '#FF1E3C', '#B3001E']}
+                            style={styles.mainPlayGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                        >
+                            <Play color="#FFFFFF" size={20} fill="#FFFFFF" />
+                            <Text style={styles.mainPlayText}>
+                                {type === 'tv'
+                                    ? `Watch Season ${selectedSeason} • Episode 1`
+                                    : 'Watch Movie Now'}
+                            </Text>
+                        </LinearGradient>
+                    </Pressable>
+
+                    {/* Secondary Watchlist & Server Indicator */}
+                    <View style={styles.secondaryActionsRow}>
+                        <Pressable
+                            onPress={handleToggleBookmark}
+                            style={[styles.secondaryActionBtn, bookmarked && styles.bookmarkedActive]}
+                        >
+                            {bookmarked ? (
+                                <Check color="#FF2442" size={18} />
+                            ) : (
+                                <Plus color="#D0D5DD" size={18} />
+                            )}
+                            <Text
+                                style={[
+                                    styles.secondaryActionText,
+                                    bookmarked && { color: '#FF2442' },
+                                ]}
+                            >
+                                {bookmarked ? 'In Watchlist' : 'Add to Watchlist'}
+                            </Text>
+                        </Pressable>
+
+                        <View style={styles.serverInfoPill}>
+                            <Server color="#FF2442" size={15} />
+                            <Text style={styles.serverInfoText}>Vyla SDK Primary • Auto-Failover</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* --- 3. STORYLINE SYNOPSIS --- */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionHeader}>Storyline</Text>
+                    <Text
+                        style={styles.overviewText}
+                        numberOfLines={readMore ? undefined : 4}
+                    >
+                        {item.overview || 'No synopsis provided for this title.'}
+                    </Text>
+                    {item.overview && item.overview.length > 180 && (
+                        <Pressable onPress={() => setReadMore(!readMore)}>
+                            <Text style={styles.readMoreBtn}>
+                                {readMore ? 'Show Less' : 'Read More'}
+                            </Text>
+                        </Pressable>
                     )}
                 </View>
+
+                {/* --- 4. TV SEASONS & EPISODES (IF TV SHOW) --- */}
+                {type === 'tv' && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionHeader}>Episodes</Text>
+
+                        {/* Season selector horizontal chips */}
+                        {seasons.length > 0 && (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.seasonsScroll}
+                            >
+                                {seasons.map((s) => {
+                                    const isSelected = selectedSeason === s.season_number;
+                                    return (
+                                        <Pressable
+                                            key={s.id}
+                                            onPress={() => handleSelectSeason(s.season_number)}
+                                            style={[
+                                                styles.seasonPill,
+                                                isSelected && styles.seasonPillActive,
+                                            ]}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.seasonPillText,
+                                                    isSelected && styles.seasonPillTextActive,
+                                                ]}
+                                            >
+                                                Season {s.season_number}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </ScrollView>
+                        )}
+
+                        {/* Episodes List */}
+                        {epLoading ? (
+                            <ActivityIndicator size="small" color="#FF2442" style={{ marginVertical: 20 }} />
+                        ) : (
+                            <View style={styles.episodesList}>
+                                {episodes.map((ep) => (
+                                    <Pressable
+                                        key={ep.id}
+                                        style={styles.episodeCard}
+                                        onPress={() =>
+                                            navigation.navigate('Player', {
+                                                id,
+                                                type: 'tv',
+                                                item,
+                                                season: selectedSeason,
+                                                episode: ep.episode_number,
+                                            })
+                                        }
+                                    >
+                                        <View style={styles.episodeThumbWrapper}>
+                                            <Image
+                                                source={{
+                                                    uri: ep.still_path
+                                                        ? `https://image.tmdb.org/t/p/w300${ep.still_path}`
+                                                        : backdropUri,
+                                                }}
+                                                style={styles.episodeThumb}
+                                            />
+                                            <View style={styles.epPlayOverlay}>
+                                                <View style={styles.epPlayIconCircle}>
+                                                    <Play color="#FFFFFF" size={13} fill="#FFFFFF" />
+                                                </View>
+                                            </View>
+                                        </View>
+                                        <View style={styles.episodeInfo}>
+                                            <View style={styles.episodeTitleRow}>
+                                                <Text style={styles.episodeNumber}>
+                                                    EP {ep.episode_number}
+                                                </Text>
+                                                <Text style={styles.episodeRuntime}>
+                                                    {ep.runtime ? `${ep.runtime}m` : '45m'}
+                                                </Text>
+                                            </View>
+                                            <Text style={styles.episodeTitle} numberOfLines={1}>
+                                                {ep.name || `Episode ${ep.episode_number}`}
+                                            </Text>
+                                            <Text style={styles.episodeOverview} numberOfLines={2}>
+                                                {ep.overview || 'No episode description available.'}
+                                            </Text>
+                                        </View>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                {/* --- 5. CAST & CREW --- */}
+                {cast && cast.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionHeader}>Top Cast</Text>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.castScroll}
+                        >
+                            {cast.map((actor) => (
+                                <View key={actor.id} style={styles.castCard}>
+                                    <Image
+                                        source={{
+                                            uri: actor.profile_path
+                                                ? `https://image.tmdb.org/t/p/w185${actor.profile_path}`
+                                                : 'https://via.placeholder.com/150',
+                                        }}
+                                        style={styles.castAvatar}
+                                    />
+                                    <Text style={styles.castName} numberOfLines={1}>
+                                        {actor.name}
+                                    </Text>
+                                    <Text style={styles.castRole} numberOfLines={1}>
+                                        {actor.character || 'Cast'}
+                                    </Text>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
             </ScrollView>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    tvScrollContent: { paddingLeft: 100 },
-    header: { height: 350 },
-    headerTV: { height: height * 0.7, width: '100%', position: 'absolute' },
-    backdrop: { width: '100%', height: '100%', resizeMode: 'cover' },
-    gradient: { ...StyleSheet.absoluteFillObject },
-    backButton: {
-        position: 'absolute',
-        left: isTV ? 40 : 16,
-        width: isTV ? 52 : 42,
-        height: isTV ? 52 : 42,
-        borderRadius: 26,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+    container: {
+        flex: 1,
+        backgroundColor: '#08090C',
+    },
+    centered: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-        zIndex: 50,
     },
-    content: { padding: 16, marginTop: -40 },
-    contentTV: { flexDirection: 'row', marginTop: height * 0.4, paddingHorizontal: 50, gap: 40 },
-    tvMainColumn: { flex: 1.2 },
-    tvSideColumn: { flex: 0.8 },
-    title: { fontSize: 24, fontWeight: '900', marginBottom: 8 },
-    titleTV: { fontSize: 44, marginBottom: 12 },
-    metaRow: {
+    loadingText: {
+        color: '#98A2B3',
+        fontSize: 13,
+        marginTop: 12,
+    },
+    backdropContainer: {
+        width: '100%',
+        height: height * 0.52,
+        position: 'relative',
+        justifyContent: 'flex-end',
+    },
+    backdropImage: {
+        width: '100%',
+        height: '100%',
+        position: 'absolute',
+    },
+    backdropGradient: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    topNavRow: {
+        position: 'absolute',
+        left: 18,
+        right: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 10,
+    },
+    topRightActions: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        marginBottom: 12,
     },
-    ratingBadge: {
-        backgroundColor: '#10B981',
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
-    },
-    ratingBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '900',
-    },
-    metaText: {
-        color: '#8A99A8',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    hdPill: {
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    navCircleBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(15, 18, 23, 0.75)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    hdPillText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '800',
-    },
-    tagContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 },
-    tag: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        borderWidth: 1,
-    },
-    tagText: {
-        color: '#FF4D4D',
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    overview: { fontSize: 14, lineHeight: 22, marginBottom: 20 },
-    overviewTV: { fontSize: 18, lineHeight: 28 },
-    actionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 24,
-    },
-    mainPlayBtn: {
-        borderRadius: 24,
-        overflow: 'hidden',
-    },
-    playBtnGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 22,
-        paddingVertical: 12,
-        borderRadius: 24,
-    },
-    playBtnText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '900',
-        letterSpacing: 0.5,
-    },
-    myListBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 18,
-        paddingVertical: 12,
-        borderRadius: 24,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
-        borderWidth: 1.2,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    myListBtnActive: {
-        backgroundColor: 'rgba(16, 185, 129, 0.12)',
-        borderColor: 'rgba(16, 185, 129, 0.4)',
-    },
-    myListBtnText: {
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: '800',
-    },
-    section: { marginTop: 12, marginBottom: 16 },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    sectionTitle: { fontSize: 18, fontWeight: '800' },
-    sectionTitleTV: { fontSize: 24 },
-    castCard: { marginRight: 14, alignItems: 'center', width: 70 },
-    castImage: { width: 64, height: 64, borderRadius: 32, marginBottom: 6 },
-    castName: { fontSize: 11, textAlign: 'center' },
-    rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    pickerWrapper: {
-        backgroundColor: 'rgba(255, 48, 48, 0.1)',
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 48, 48, 0.3)',
-        overflow: 'hidden',
-    },
-    pickerWrapperTV: { minWidth: 150 },
-    pickerPressable: { paddingHorizontal: 12, paddingVertical: 6 },
-    pickerVisualContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    pickerText: { fontWeight: '800', fontSize: 13 },
-    hiddenPickerContainer: { position: 'absolute', opacity: 0, width: '100%', height: '100%' },
-    episodeCard: { marginBottom: 10, borderRadius: 12 },
-    episodeInner: {
-        flexDirection: 'row',
-        padding: 8,
-        borderRadius: 12,
-        borderWidth: 1,
-        overflow: 'hidden',
-    },
-    epImageContainer: {
-        width: 100,
-        height: 60,
-        borderRadius: 8,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    epImage: { width: '100%', height: '100%' },
-    epPlayOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderColor: 'rgba(255, 255, 255, 0.12)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    epInfo: { flex: 1, marginLeft: 12, justifyContent: 'center' },
-    epTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-    epOverview: { fontSize: 12 },
-    tvFocusBorder: { borderWidth: 2, borderColor: '#FF3030' },
-    tvFocusScale: { transform: [{ scale: 1.05 }] },
+    heroInfoOverlay: {
+        paddingHorizontal: 20,
+        paddingBottom: 16,
+    },
+    matchBadgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    matchBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 36, 66, 0.16)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.35)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+        gap: 4,
+    },
+    matchText: {
+        color: '#FF2442',
+        fontSize: 11,
+        fontWeight: '800',
+    },
+    qualityTag: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    qualityText: {
+        color: '#EAECF0',
+        fontSize: 9.5,
+        fontWeight: '800',
+    },
+    detailTitle: {
+        color: '#FFFFFF',
+        fontSize: 26,
+        fontWeight: '900',
+        lineHeight: 32,
+        marginBottom: 8,
+    },
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 7,
+        marginBottom: 6,
+    },
+    metaItem: {
+        color: '#D0D5DD',
+        fontSize: 12.5,
+        fontWeight: '600',
+    },
+    metaDot: {
+        color: '#667085',
+        fontSize: 12,
+    },
+    ratingBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    ratingText: {
+        color: '#FFC107',
+        fontSize: 12.5,
+        fontWeight: '800',
+    },
+    pgBadge: {
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 5,
+        paddingVertical: 1,
+        borderRadius: 4,
+    },
+    pgBadgeText: {
+        color: '#D0D5DD',
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    genresText: {
+        color: '#98A2B3',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    actionsContainer: {
+        paddingHorizontal: 20,
+        marginTop: 10,
+        marginBottom: 24,
+    },
+    mainPlayBtn: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        marginBottom: 12,
+        shadowColor: '#FF2442',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    mainPlayGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 15,
+        gap: 9,
+    },
+    mainPlayText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '800',
+        letterSpacing: 0.3,
+    },
+    secondaryActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    secondaryActionBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#141821',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 16,
+        paddingVertical: 11,
+        gap: 6,
+    },
+    bookmarkedActive: {
+        borderColor: 'rgba(255, 36, 66, 0.4)',
+        backgroundColor: 'rgba(255, 36, 66, 0.1)',
+    },
+    secondaryActionText: {
+        color: '#D0D5DD',
+        fontSize: 12.5,
+        fontWeight: '700',
+    },
+    serverInfoPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#141821',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 11,
+        gap: 6,
+    },
+    serverInfoText: {
+        color: '#98A2B3',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    section: {
+        paddingHorizontal: 20,
+        marginBottom: 24,
+    },
+    sectionHeader: {
+        color: '#FFFFFF',
+        fontSize: 17,
+        fontWeight: '800',
+        marginBottom: 10,
+        letterSpacing: 0.2,
+    },
+    overviewText: {
+        color: '#D0D5DD',
+        fontSize: 13.5,
+        lineHeight: 21,
+    },
+    readMoreBtn: {
+        color: '#FF2442',
+        fontSize: 13,
+        fontWeight: '700',
+        marginTop: 6,
+    },
+    seasonsScroll: {
+        gap: 8,
+        marginBottom: 16,
+    },
+    seasonPill: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 14,
+        backgroundColor: '#141821',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    seasonPillActive: {
+        backgroundColor: 'rgba(255, 36, 66, 0.18)',
+        borderColor: '#FF2442',
+    },
+    seasonPillText: {
+        color: '#98A2B3',
+        fontSize: 12.5,
+        fontWeight: '600',
+    },
+    seasonPillTextActive: {
+        color: '#FF2442',
+        fontWeight: '800',
+    },
+    episodesList: {
+        gap: 12,
+    },
+    episodeCard: {
+        flexDirection: 'row',
+        backgroundColor: '#0F1217',
+        borderRadius: 16,
+        padding: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+        alignItems: 'center',
+    },
+    episodeThumbWrapper: {
+        width: 90,
+        height: 60,
+        borderRadius: 10,
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: '#1A202C',
+    },
+    episodeThumb: {
+        width: '100%',
+        height: '100%',
+    },
+    epPlayOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.35)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    epPlayIconCircle: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: '#FF2442',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    episodeInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    episodeTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 3,
+    },
+    episodeNumber: {
+        color: '#FF2442',
+        fontSize: 11,
+        fontWeight: '800',
+    },
+    episodeRuntime: {
+        color: '#667085',
+        fontSize: 11,
+    },
+    episodeTitle: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '700',
+        marginBottom: 3,
+    },
+    episodeOverview: {
+        color: '#98A2B3',
+        fontSize: 11,
+        lineHeight: 15,
+    },
+    castScroll: {
+        gap: 14,
+    },
+    castCard: {
+        width: 76,
+        alignItems: 'center',
+    },
+    castAvatar: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#1E2533',
+        marginBottom: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    castName: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    castRole: {
+        color: '#98A2B3',
+        fontSize: 10,
+        textAlign: 'center',
+        marginTop: 1,
+    },
 });
+

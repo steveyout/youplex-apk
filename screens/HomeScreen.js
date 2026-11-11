@@ -13,32 +13,45 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Play, Plus, Flame, Clock, Check, Info, Sparkles, TrendingUp, ChevronRight } from 'lucide-react-native';
+import {
+    Play,
+    Plus,
+    Flame,
+    Clock,
+    Check,
+    Sparkles,
+    ChevronRight,
+    TrendingUp,
+    Film,
+    Tv,
+} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopBar } from '../components/TopBar';
+import { ScreenSkeleton } from '../components/SkeletonLoader';
 import { useAppTheme } from '../theme/ThemeContext';
 import { MovieCard } from '../components/MovieCard';
+import { AIAssistantModal } from '../components/AIAssistantModal';
 import { getTrendingMovies, getTrendingTV, IMAGE_PATH } from '../services/api';
 import { getHistory } from '../services/historyService';
 import { isBookmarked, toggleBookmark } from '../services/bookmarksService';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { isTV } from '../utils/device';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const GENRES = [
     { id: 0, name: 'All' },
     { id: 28, name: 'Action' },
-    { id: 35, name: 'Comedy' },
     { id: 878, name: 'Sci-Fi' },
+    { id: 53, name: 'Thriller' },
+    { id: 35, name: 'Comedy' },
     { id: 18, name: 'Drama' },
     { id: 27, name: 'Horror' },
     { id: 16, name: 'Animation' },
-    { id: 53, name: 'Thriller' },
 ];
 
 export const HomeScreen = () => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const navigation = useNavigation();
     const isFocused = useIsFocused();
     const insets = useSafeAreaInsets();
@@ -49,9 +62,11 @@ export const HomeScreen = () => {
     const [selectedGenre, setSelectedGenre] = useState(0);
     const [heroBookmarked, setHeroBookmarked] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [aiModalVisible, setAiModalVisible] = useState(false);
 
     const TV_LEFT_OFFSET = 100;
     const HERO_WIDTH = isTV ? width - TV_LEFT_OFFSET : width;
+    const HERO_HEIGHT = isTV ? height * 0.72 : Math.min(height * 0.58, 480);
 
     useEffect(() => {
         const loadData = async () => {
@@ -108,372 +123,183 @@ export const HomeScreen = () => {
         setHeroBookmarked(newState);
     };
 
-    const renderContinueWatching = () => {
-        if (!continueWatching || continueWatching.length === 0) {
-            return (
-                <View style={styles.section}>
-                    <View style={styles.sectionHeaderBetween}>
-                        <View style={styles.sectionHeaderTitleRow}>
-                            <Clock color="#FF3030" size={18} />
-                            <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-                                Continue Watching
-                            </Text>
-                        </View>
-                    </View>
-                    <Pressable
-                        style={[
-                            styles.emptyProgressCard,
-                            {
-                                backgroundColor: theme.colors.cardBg,
-                                borderColor: theme.colors.cardBorder,
-                            },
-                            isTV && styles.emptyProgressCardTV,
-                        ]}
-                        onPress={() => navigation.navigate('Movies')}
-                    >
-                        <View style={styles.emptyProgressIconCircle}>
-                            <Clock color="#FF3030" size={20} />
-                        </View>
-                        <View style={styles.emptyProgressTextWrapper}>
-                            <Text style={[styles.emptyProgressTitle, { color: theme.colors.onBackground }]}>
-                                No Media in Progress
-                            </Text>
-                            <Text style={styles.emptyProgressSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                                Start streaming movies or series to resume here anytime.
-                            </Text>
-                        </View>
-                        <ChevronRight size={18} color="#8A99A8" />
-                    </Pressable>
-                </View>
-            );
-        }
+    const heroMovie = trendingMovies[0];
 
-        return (
-            <View style={styles.section}>
-                <View style={styles.sectionHeaderBetween}>
-                    <View style={styles.sectionHeaderTitleRow}>
-                        <Clock color="#FF3030" size={18} />
-                        <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-                            Continue Watching
-                        </Text>
-                    </View>
-                    <Pressable
-                        style={styles.seeAllBtn}
-                        onPress={() => navigation.navigate('Progress')}
-                    >
-                        <Text style={styles.seeAllText}>View All</Text>
-                        <ChevronRight size={14} color="#FF3030" />
-                    </Pressable>
-                </View>
-                <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={continueWatching}
-                    keyExtractor={(item) => `hist-${item.id}-${item.season || 0}-${item.episode || 0}`}
-                    contentContainerStyle={{ paddingLeft: 20 }}
-                    renderItem={({ item }) => {
-                        const progress =
-                            item.duration && item.duration > 0
-                                ? Math.min(100, Math.max(8, Math.round((item.position / item.duration) * 100)))
-                                : 25;
+    const filteredMovies =
+        selectedGenre === 0
+            ? trendingMovies
+            : trendingMovies.filter((m) => m.genre_ids?.includes(selectedGenre));
 
-                        const isShow = item.type === 'tv' || Boolean(item.season);
-
-                        return (
-                            <Pressable
-                                style={({ focused }) => [
-                                    styles.continueCard,
-                                    {
-                                        backgroundColor: theme.colors.cardBg,
-                                        borderColor: theme.colors.cardBorder,
-                                    },
-                                    isTV && styles.continueCardTV,
-                                    focused && styles.tvFocusBorder,
-                                ]}
-                                onPress={() =>
-                                    navigation.navigate('Player', {
-                                        id: item.id,
-                                        type: item.type,
-                                        season: item.season,
-                                        episode: item.episode,
-                                        item,
-                                        position: item.position,
-                                    })
-                                }
-                            >
-                                <Image
-                                    source={{
-                                        uri:
-                                            item.backdrop ||
-                                            (item.backdrop_path ? `${IMAGE_PATH}${item.backdrop_path}` : `${IMAGE_PATH}${item.poster_path}`),
-                                    }}
-                                    style={styles.continueImage}
-                                />
-
-                                {/* Play Overlay Center Badge */}
-                                <View style={styles.continuePlayOverlay} pointerEvents="none">
-                                    <View style={styles.continuePlayCircle}>
-                                        <Play color="#FFFFFF" size={16} fill="#FFFFFF" style={{ marginLeft: 2 }} />
-                                    </View>
-                                </View>
-
-                                {/* Top Badge for Progress % or Season */}
-                                <View style={styles.continueTopRow} pointerEvents="none">
-                                    {isShow ? (
-                                        <View style={styles.continueTagPill}>
-                                            <Text style={styles.continueTagText}>
-                                                S{item.season}:E{item.episode}
-                                            </Text>
-                                        </View>
-                                    ) : (
-                                        <View style={styles.continueTagPill}>
-                                            <Text style={styles.continueTagText}>{progress}%</Text>
-                                        </View>
-                                    )}
-                                </View>
-
-                                <LinearGradient
-                                    colors={['transparent', 'rgba(5, 5, 5, 0.94)']}
-                                    style={styles.continueGradient}
-                                >
-                                    <Text style={styles.continueTitle} numberOfLines={1} ellipsizeMode="tail">
-                                        {item.title || item.name}
-                                    </Text>
-                                    {isShow && (
-                                        <Text style={styles.continueSubtitle} numberOfLines={1}>
-                                            Season {item.season} • Episode {item.episode}
-                                        </Text>
-                                    )}
-                                </LinearGradient>
-
-                                {/* Glowing Red Progress Bar */}
-                                <View style={styles.progressBarTrack}>
-                                    <LinearGradient
-                                        colors={['#FF4565', '#FF3030']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={[styles.progressBarFill, { width: `${progress}%` }]}
-                                    />
-                                </View>
-                            </Pressable>
-                        );
-                    }}
-                />
-            </View>
-        );
-    };
-
-    // Netflix-Style Top 10 Row with Giant Bold Numbers
-    const renderTop10Section = (data) => {
-        const top10 = data.slice(0, 10);
-        return (
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <TrendingUp color="#FF3030" size={18} />
-                    <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-                        Top 10 Today on YouPlex
-                    </Text>
-                </View>
-                <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={top10}
-                    keyExtractor={(item) => `top10-${item.id}`}
-                    contentContainerStyle={{ paddingLeft: 20 }}
-                    renderItem={({ item, index }) => (
-                        <View style={styles.topTenItemContainer}>
-                            <Text style={styles.topTenRankNumber}>{index + 1}</Text>
-                            <View style={styles.topTenCardOffset}>
-                                <MovieCard item={item} />
-                            </View>
-                        </View>
-                    )}
-                />
-            </View>
-        );
-    };
-
-    const renderSection = (title, data) => {
-        const filteredData = selectedGenre === 0
-            ? data
-            : data.filter((item) => item.genre_ids?.includes(selectedGenre));
-
-        if (filteredData.length === 0) return null;
-
-        return (
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <View style={styles.sectionAccent} />
-                    <Text style={[styles.sectionTitle, { color: theme.colors.onBackground }]}>
-                        {title}
-                    </Text>
-                </View>
-                <FlatList
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    data={filteredData}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => <MovieCard item={item} />}
-                    contentContainerStyle={{ paddingLeft: 20 }}
-                />
-            </View>
-        );
-    };
-
-    if (loading)
-        return (
-            <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-                <ActivityIndicator size="large" color="#FF3030" />
-            </View>
-        );
-
-    const hero = trendingMovies[0];
+    if (loading) {
+        return <ScreenSkeleton />;
+    }
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.mainContainer}>
             <TopBar />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: 110 + insets.bottom },
                     isTV && { paddingLeft: TV_LEFT_OFFSET },
-                    { paddingBottom: 150 + insets.bottom }
                 ]}
             >
-                {/* HERO FEATURE BANNER */}
-                <ImageBackground
-                    source={{ uri: hero?.backdrop }}
-                    style={[styles.hero, { width: HERO_WIDTH }, isTV && styles.heroTV]}
-                >
-                    <LinearGradient
-                        colors={
-                            isDarkMode
-                                ? ['transparent', 'rgba(5,5,5,0.4)', 'rgba(5,5,5,0.85)', '#050505']
-                                : ['transparent', 'rgba(244,246,248,0.3)', 'rgba(244,246,248,0.85)', '#F4F6F8']
-                        }
-                        style={[styles.heroGradient, isTV && { paddingLeft: 44, paddingBottom: 50 }]}
-                    >
-                        {/* Hero Meta Badges */}
-                        <View style={styles.heroMetaRow}>
-                            <View style={styles.trendingBadge}>
-                                <Flame color="#FF3030" size={14} />
-                                <Text style={styles.trendingBadgeText}>#1 TRENDING TODAY</Text>
-                            </View>
-                            {hero?.rating && (
-                                <View style={styles.ratingBadge}>
-                                    <Text style={styles.ratingBadgeText}>★ {hero.rating}</Text>
-                                </View>
-                            )}
-                            {hero?.year && (
-                                <Text style={styles.yearText}>{hero.year}</Text>
-                            )}
-                            <View style={styles.hdTag}>
-                                <Text style={styles.hdTagText}>4K ULTRA HD</Text>
-                            </View>
-                        </View>
-
-                        <Text
-                            style={[
-                                styles.heroTitle,
-                                isTV && styles.heroTitleTV,
-                                { color: isDarkMode ? '#FFFFFF' : '#111827' },
-                            ]}
-                            numberOfLines={2}
+                {/* --- 1. CINEMATIC HERO BANNER --- */}
+                {heroMovie && (
+                    <View style={[styles.heroContainer, { height: HERO_HEIGHT, width: HERO_WIDTH }]}>
+                        <ImageBackground
+                            source={{ uri: heroMovie.backdrop }}
+                            style={styles.heroImage}
+                            resizeMode="cover"
                         >
-                            {hero?.title?.toUpperCase()}
-                        </Text>
-
-                        {/* Netflix-Style Hero Action Buttons */}
-                        <View style={styles.heroButtons}>
-                            <Pressable
-                                hasTVPreferredFocus={true}
-                                style={({ focused }) => [
-                                    styles.playActionWrapper,
-                                    focused && styles.tvFocusBorder,
+                            {/* Multi-Stop Dark Fade */}
+                            <LinearGradient
+                                colors={[
+                                    'rgba(8, 9, 12, 0.4)',
+                                    'transparent',
+                                    'rgba(8, 9, 12, 0.75)',
+                                    '#08090C',
                                 ]}
-                                onPress={() =>
-                                    navigation.navigate('Player', {
-                                        id: hero.id,
-                                        type: 'movie',
-                                        item: hero,
-                                    })
-                                }
-                            >
-                                <LinearGradient
-                                    colors={['#FF4565', '#FF3030', '#B71833']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[styles.playButtonGradient, isTV && styles.playButtonGradientTV]}
+                                style={styles.heroGradient}
+                                start={{ x: 0.5, y: 0 }}
+                                end={{ x: 0.5, y: 1 }}
+                            />
+
+                            {/* Hero Content */}
+                            <View style={styles.heroContent}>
+                                {/* AI Match Pill */}
+                                <View style={styles.aiPickBadge}>
+                                    <Sparkles color="#FF2442" size={13} />
+                                    <Text style={styles.aiPickText}>TOP PICK • #1 STREAMING</Text>
+                                </View>
+
+                                {/* Title */}
+                                <Text
+                                    style={[
+                                        styles.heroTitle,
+                                        isTV && { fontSize: 44, lineHeight: 52 },
+                                    ]}
+                                    numberOfLines={2}
                                 >
-                                    <Play color="#FFFFFF" size={isTV ? 26 : 20} fill="#FFFFFF" />
-                                    <Text style={[styles.playButtonText, isTV && { fontSize: 20 }]}>
-                                        Play Now
+                                    {heroMovie.title}
+                                </Text>
+
+                                {/* Metadata Row */}
+                                <View style={styles.heroMetaRow}>
+                                    <View style={styles.matchScorePill}>
+                                        <Flame color="#FF2442" size={12} />
+                                        <Text style={styles.matchScoreText}>99% Match</Text>
+                                    </View>
+                                    <Text style={styles.heroYear}>{heroMovie.year}</Text>
+                                    <View style={styles.ratingBadge}>
+                                        <Text style={styles.ratingBadgeText}>★ {heroMovie.rating}</Text>
+                                    </View>
+                                    <View style={styles.hdrBadge}>
+                                        <Text style={styles.hdrBadgeText}>4K HDR</Text>
+                                    </View>
+                                </View>
+
+                                {/* Action Buttons */}
+                                <View style={styles.heroActionsRow}>
+                                    {/* Primary Play Button */}
+                                    <Pressable
+                                        onPress={() =>
+                                            navigation.navigate('Player', {
+                                                id: heroMovie.id,
+                                                type: 'movie',
+                                                item: heroMovie,
+                                            })
+                                        }
+                                        style={styles.heroPlayBtn}
+                                    >
+                                        <LinearGradient
+                                            colors={['#FF3B56', '#FF1E3C', '#B3001E']}
+                                            style={styles.heroPlayGradient}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                        >
+                                            <Play color="#FFFFFF" size={18} fill="#FFFFFF" />
+                                            <Text style={styles.heroPlayText}>Watch Now</Text>
+                                        </LinearGradient>
+                                    </Pressable>
+
+                                    {/* Watchlist Toggle */}
+                                    <Pressable
+                                        onPress={() => handleToggleHeroBookmark(heroMovie)}
+                                        style={styles.heroListBtn}
+                                    >
+                                        {heroBookmarked ? (
+                                            <Check color="#FF2442" size={18} />
+                                        ) : (
+                                            <Plus color="#FFFFFF" size={18} />
+                                        )}
+                                        <Text
+                                            style={[
+                                                styles.heroListText,
+                                                heroBookmarked && { color: '#FF2442' },
+                                            ]}
+                                        >
+                                            {heroBookmarked ? 'In List' : 'Watchlist'}
+                                        </Text>
+                                    </Pressable>
+
+                                    {/* Info Button */}
+                                    <Pressable
+                                        onPress={() =>
+                                            navigation.navigate('MovieDetail', {
+                                                id: heroMovie.id,
+                                                type: 'movie',
+                                            })
+                                        }
+                                        style={styles.heroInfoBtn}
+                                    >
+                                        <ChevronRight color="#98A2B3" size={18} />
+                                    </Pressable>
+                                </View>
+                            </View>
+                        </ImageBackground>
+                    </View>
+                )}
+
+                {/* --- 2. AI MOVIE ASSISTANT PROMPT BAR --- */}
+                <View style={styles.aiPromptSection}>
+                    <Pressable
+                        onPress={() => setAiModalVisible(true)}
+                        style={styles.aiPromptCard}
+                    >
+                        <LinearGradient
+                            colors={['rgba(255, 36, 66, 0.16)', 'rgba(15, 18, 23, 0.95)']}
+                            style={styles.aiPromptGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <View style={styles.aiPromptLeft}>
+                                <View style={styles.aiSparkleBox}>
+                                    <Sparkles color="#FF2442" size={20} />
+                                </View>
+                                <View style={styles.aiPromptTextBox}>
+                                    <Text style={styles.aiPromptHeadline}>Personalized Discover</Text>
+                                    <Text style={styles.aiPromptSub}>
+                                        Discover movies tailored to your watch history & mood
                                     </Text>
-                                </LinearGradient>
-                            </Pressable>
+                                </View>
+                            </View>
+                            <View style={styles.aiPromptArrow}>
+                                <ChevronRight color="#FF2442" size={18} />
+                            </View>
+                        </LinearGradient>
+                    </Pressable>
+                </View>
 
-                            {/* + My List Button directly on Hero */}
-                            <Pressable
-                                style={({ focused }) => [
-                                    styles.myListBtn,
-                                    heroBookmarked && styles.myListBtnActive,
-                                    isTV && styles.detailsButtonTV,
-                                    focused && styles.tvFocusBorder,
-                                ]}
-                                onPress={() => handleToggleHeroBookmark(hero)}
-                            >
-                                {heroBookmarked ? (
-                                    <Check color="#10B981" size={isTV ? 24 : 18} strokeWidth={2.5} />
-                                ) : (
-                                    <Plus color={isDarkMode ? '#FFFFFF' : '#111827'} size={isTV ? 24 : 18} strokeWidth={2.5} />
-                                )}
-                                <Text
-                                    style={[
-                                        styles.detailsButtonText,
-                                        { color: heroBookmarked ? '#10B981' : (isDarkMode ? '#FFFFFF' : '#111827') },
-                                        isTV && { fontSize: 18 },
-                                    ]}
-                                >
-                                    {heroBookmarked ? 'In List' : 'My List'}
-                                </Text>
-                            </Pressable>
-
-                            {/* More Info */}
-                            <Pressable
-                                style={({ focused }) => [
-                                    styles.detailsButton,
-                                    {
-                                        backgroundColor: isDarkMode ? 'rgba(20, 26, 33, 0.85)' : 'rgba(255, 255, 255, 0.85)',
-                                        borderColor: theme.colors.outlineVariant,
-                                    },
-                                    isTV && styles.detailsButtonTV,
-                                    focused && styles.tvFocusBorder,
-                                ]}
-                                onPress={() =>
-                                    navigation.navigate('MovieDetail', {
-                                        id: hero.id,
-                                        type: 'movie',
-                                    })
-                                }
-                            >
-                                <Info color={isDarkMode ? '#FFFFFF' : '#111827'} size={isTV ? 24 : 18} />
-                                <Text
-                                    style={[
-                                        styles.detailsButtonText,
-                                        { color: isDarkMode ? '#FFFFFF' : '#111827' },
-                                        isTV && { fontSize: 18 },
-                                    ]}
-                                >
-                                    Info
-                                </Text>
-                            </Pressable>
-                        </View>
-                    </LinearGradient>
-                </ImageBackground>
-
-                {/* Genre Filter Pills */}
-                <View style={[styles.genreRow, isTV && { paddingLeft: 44 }]}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
+                {/* --- 3. GENRE FILTER CHIPS --- */}
+                <View style={styles.genreRowContainer}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.genreScroll}
+                    >
                         {GENRES.map((g) => {
                             const isSelected = selectedGenre === g.id;
                             return (
@@ -482,399 +308,542 @@ export const HomeScreen = () => {
                                     onPress={() => setSelectedGenre(g.id)}
                                     style={[
                                         styles.genrePill,
-                                        isSelected && styles.genrePillSelected,
-                                        { borderColor: isSelected ? '#FF3030' : theme.colors.outlineVariant }
+                                        isSelected && styles.genrePillActive,
                                     ]}
                                 >
-                                    <Text
-                                        style={[
-                                            styles.genrePillText,
-                                            isSelected && styles.genrePillTextSelected,
-                                            { color: isSelected ? '#FFFFFF' : (isDarkMode ? '#8A99A8' : '#6B7280') }
-                                        ]}
-                                    >
-                                        {g.name}
-                                    </Text>
+                                    {isSelected ? (
+                                        <LinearGradient
+                                            colors={['#FF3B56', '#FF1E3C', '#B3001E']}
+                                            style={styles.genreGradient}
+                                        >
+                                            <Text style={styles.genreTextActive}>{g.name}</Text>
+                                        </LinearGradient>
+                                    ) : (
+                                        <Text style={styles.genreText}>{g.name}</Text>
+                                    )}
                                 </Pressable>
                             );
                         })}
                     </ScrollView>
                 </View>
 
-                {/* Content Rows */}
-                <View style={styles.contentWrapper}>
-                    {renderContinueWatching()}
-                    {renderTop10Section(trendingMovies)}
-                    {renderSection('Trending Movies', trendingMovies)}
-                    {renderSection('Trending TV Shows', trendingTV)}
+                {/* --- 4. CONTINUE WATCHING (IF ANY) --- */}
+                {continueWatching && continueWatching.length > 0 && (
+                    <View style={styles.sectionContainer}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionTitleRow}>
+                                <Clock color="#FF2442" size={17} />
+                                <Text style={styles.sectionTitle}>Continue Watching</Text>
+                            </View>
+                            <Pressable onPress={() => navigation.navigate('History')}>
+                                <Text style={styles.seeAllText}>See All</Text>
+                            </Pressable>
+                        </View>
+                        <FlatList
+                            data={continueWatching}
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            keyExtractor={(item, idx) => `cw-${item.id}-${idx}`}
+                            contentContainerStyle={styles.horizontalList}
+                            renderItem={({ item }) => {
+                                const progress =
+                                    item.duration > 0
+                                        ? Math.min(1, Math.max(0, item.position / item.duration))
+                                        : 0.4;
+                                const isTvMedia = item.type === 'tv';
+                                const sub = isTvMedia
+                                    ? `S${item.season || 1}:E${item.episode || 1}`
+                                    : `${Math.round((item.position || 0) / 60)}m left`;
+
+                                return (
+                                    <Pressable
+                                        onPress={() =>
+                                            navigation.navigate('Player', {
+                                                id: item.id,
+                                                type: item.type || 'movie',
+                                                season: item.season || 1,
+                                                episode: item.episode || 1,
+                                                position: item.position || 0,
+                                            })
+                                        }
+                                        style={styles.cwCard}
+                                    >
+                                        <View style={styles.cwImageContainer}>
+                                            <Image
+                                                source={{
+                                                    uri:
+                                                        item.backdrop_path
+                                                            ? `https://image.tmdb.org/t/p/w500${item.backdrop_path}`
+                                                            : item.poster_path
+                                                            ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+                                                            : 'https://via.placeholder.com/300x170',
+                                                }}
+                                                style={styles.cwImage}
+                                            />
+                                            <View style={styles.cwPlayOverlay}>
+                                                <View style={styles.cwPlayCircle}>
+                                                    <Play color="#FFFFFF" size={14} fill="#FFFFFF" />
+                                                </View>
+                                            </View>
+                                            {/* Red Progress Track */}
+                                            <View style={styles.cwProgressTrack}>
+                                                <View
+                                                    style={[
+                                                        styles.cwProgressBar,
+                                                        { width: `${progress * 100}%` },
+                                                    ]}
+                                                />
+                                            </View>
+                                        </View>
+                                        <Text style={styles.cwTitle} numberOfLines={1}>
+                                            {item.title}
+                                        </Text>
+                                        <Text style={styles.cwSub}>{sub}</Text>
+                                    </Pressable>
+                                );
+                            }}
+                        />
+                    </View>
+                )}
+
+                {/* --- 5. TOP 10 TODAY (RANKED CAROUSEL) --- */}
+                <View style={styles.sectionContainer}>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionTitleRow}>
+                            <TrendingUp color="#FF2442" size={17} />
+                            <Text style={styles.sectionTitle}>Top 10 Today</Text>
+                        </View>
+                        <View style={styles.trendingBadge}>
+                            <Text style={styles.trendingBadgeText}>LIVE RANKING</Text>
+                        </View>
+                    </View>
+                    <FlatList
+                        data={trendingMovies.slice(0, 10)}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => `top10-${item.id}`}
+                        contentContainerStyle={styles.horizontalList}
+                        renderItem={({ item, index }) => (
+                            <MovieCard item={item} rank={index + 1} showMatch={true} />
+                        )}
+                    />
+                </View>
+
+                {/* --- 6. AI PICKS FOR YOU --- */}
+                <View style={styles.sectionContainer}>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionTitleRow}>
+                            <Sparkles color="#FF2442" size={17} />
+                            <Text style={styles.sectionTitle}>{continueWatching && continueWatching.length > 0 ? 'Because You Watched ' + continueWatching[0].title : 'Curated For You'}</Text>
+                        </View>
+                        <Text style={styles.seeAllText}>Based on taste</Text>
+                    </View>
+                    <FlatList
+                        data={filteredMovies.slice(3, 14)}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => `ai-${item.id}`}
+                        contentContainerStyle={styles.horizontalList}
+                        renderItem={({ item }) => <MovieCard item={item} showMatch={true} />}
+                    />
+                </View>
+
+                {/* --- 7. TRENDING TV SERIES --- */}
+                <View style={styles.sectionContainer}>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionTitleRow}>
+                            <Tv color="#FF2442" size={17} />
+                            <Text style={styles.sectionTitle}>Popular TV Series</Text>
+                        </View>
+                        <Pressable onPress={() => navigation.navigate('Tv')}>
+                            <Text style={styles.seeAllText}>Explore</Text>
+                        </Pressable>
+                    </View>
+                    <FlatList
+                        data={trendingTV}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => `tv-${item.id}`}
+                        contentContainerStyle={styles.horizontalList}
+                        renderItem={({ item }) => <MovieCard item={item} />}
+                    />
+                </View>
+
+                {/* --- 8. BLOCKBUSTER MOVIES --- */}
+                <View style={styles.sectionContainer}>
+                    <View style={styles.sectionHeader}>
+                        <View style={styles.sectionTitleRow}>
+                            <Film color="#FF2442" size={17} />
+                            <Text style={styles.sectionTitle}>Trending Movies</Text>
+                        </View>
+                        <Pressable onPress={() => navigation.navigate('Movies')}>
+                            <Text style={styles.seeAllText}>More</Text>
+                        </Pressable>
+                    </View>
+                    <FlatList
+                        data={trendingMovies.slice(10)}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => `movie-${item.id}`}
+                        contentContainerStyle={styles.horizontalList}
+                        renderItem={({ item }) => <MovieCard item={item} />}
+                    />
                 </View>
             </ScrollView>
+
+            {/* AI Assistant Interactive Modal */}
+            <AIAssistantModal
+                visible={aiModalVisible}
+                onClose={() => setAiModalVisible(false)}
+            />
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    mainContainer: {
         flex: 1,
+        backgroundColor: '#08090C',
     },
-    centered: {
+    loadingScreen: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    contentWrapper: {
-        marginTop: isTV ? -30 : -10,
+    loadingText: {
+        color: '#98A2B3',
+        fontSize: 13,
+        marginTop: 14,
+        fontWeight: '600',
     },
-    hero: {
-        height: 480,
+    scrollContent: {
+        paddingTop: 0,
+    },
+    heroContainer: {
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    heroImage: {
+        width: '100%',
+        height: '100%',
         justifyContent: 'flex-end',
-    },
-    heroTV: {
-        height: 640,
     },
     heroGradient: {
-        height: '80%',
-        justifyContent: 'flex-end',
+        ...StyleSheet.absoluteFillObject,
+    },
+    heroContent: {
         paddingHorizontal: 20,
-        paddingBottom: 24,
+        paddingBottom: 20,
+    },
+    aiPickBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 36, 66, 0.16)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.4)',
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+        gap: 6,
+        marginBottom: 8,
+    },
+    aiPickText: {
+        color: '#FF2442',
+        fontSize: 10.5,
+        fontWeight: '800',
+        letterSpacing: 0.6,
+    },
+    heroTitle: {
+        color: '#FFFFFF',
+        fontSize: 28,
+        fontWeight: '900',
+        lineHeight: 34,
+        letterSpacing: 0.3,
+        marginBottom: 8,
     },
     heroMetaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginBottom: 8,
+        gap: 8,
+        marginBottom: 16,
     },
-    trendingBadge: {
+    matchScorePill: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        backgroundColor: 'rgba(255, 48, 48, 0.2)',
-        borderColor: 'rgba(255, 48, 48, 0.4)',
-        borderWidth: 1,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderRadius: 6,
-    },
-    trendingBadgeText: {
-        color: '#FF4D4D',
-        fontSize: 10,
-        fontWeight: '900',
-        letterSpacing: 0.5,
-    },
-    ratingBadge: {
-        backgroundColor: '#10B981',
+        backgroundColor: 'rgba(255, 36, 66, 0.18)',
         paddingHorizontal: 7,
-        paddingVertical: 2,
-        borderRadius: 5,
+        paddingVertical: 2.5,
+        borderRadius: 6,
+        gap: 4,
     },
-    ratingBadgeText: {
-        color: '#FFFFFF',
+    matchScoreText: {
+        color: '#FF2442',
         fontSize: 11,
-        fontWeight: '900',
+        fontWeight: '800',
     },
-    yearText: {
-        color: '#8A99A8',
+    heroYear: {
+        color: '#D0D5DD',
         fontSize: 12,
         fontWeight: '600',
     },
-    hdTag: {
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    ratingBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    ratingBadgeText: {
+        color: '#FFC107',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    hdrBadge: {
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: 'rgba(255, 255, 255, 0.25)',
         paddingHorizontal: 5,
-        paddingVertical: 1,
+        paddingVertical: 1.5,
         borderRadius: 4,
     },
-    hdTagText: {
-        color: '#FFFFFF',
-        fontSize: 9,
+    hdrBadgeText: {
+        color: '#EAECF0',
+        fontSize: 9.5,
         fontWeight: '800',
     },
-    heroTitle: {
-        fontSize: 26,
-        fontWeight: '900',
-        marginBottom: 16,
-        letterSpacing: -0.5,
-    },
-    heroTitleTV: {
-        fontSize: 48,
-        marginBottom: 24,
-    },
-    heroButtons: {
+    heroActionsRow: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
     },
-    playActionWrapper: {
+    heroPlayBtn: {
         borderRadius: 22,
         overflow: 'hidden',
+        flex: 1,
+        maxWidth: 160,
     },
-    playButtonGradient: {
+    heroPlayGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        justifyContent: 'center',
         paddingVertical: 12,
-        borderRadius: 22,
+        paddingHorizontal: 16,
         gap: 8,
     },
-    playButtonGradientTV: {
-        paddingHorizontal: 30,
-        paddingVertical: 16,
-    },
-    playButtonText: {
+    heroPlayText: {
         color: '#FFFFFF',
         fontSize: 14,
-        fontWeight: '900',
-        letterSpacing: 0.5,
-    },
-    myListBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 22,
-        backgroundColor: 'rgba(20, 26, 33, 0.85)',
-        borderWidth: 1.2,
-        borderColor: 'rgba(255, 255, 255, 0.15)',
-        gap: 6,
-    },
-    myListBtnActive: {
-        backgroundColor: 'rgba(16, 185, 129, 0.14)',
-        borderColor: 'rgba(16, 185, 129, 0.4)',
-    },
-    detailsButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 22,
-        borderWidth: 1.2,
-        gap: 6,
-    },
-    detailsButtonTV: {
-        paddingHorizontal: 24,
-        paddingVertical: 16,
-    },
-    detailsButtonText: {
-        fontSize: 13,
         fontWeight: '800',
+        letterSpacing: 0.3,
     },
-    genreRow: {
-        marginVertical: 14,
-    },
-    genrePill: {
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        borderRadius: 16,
+    heroListBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 22,
+        paddingVertical: 11,
+        paddingHorizontal: 16,
+        gap: 6,
     },
-    genrePillSelected: {
-        backgroundColor: '#FF3030',
-    },
-    genrePillText: {
-        fontSize: 12,
+    heroListText: {
+        color: '#FFFFFF',
+        fontSize: 13,
         fontWeight: '700',
     },
-    genrePillTextSelected: {
-        fontWeight: '900',
+    heroInfoBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    section: {
-        marginTop: 20,
-        marginBottom: 8,
+    aiPromptSection: {
+        paddingHorizontal: 18,
+        marginTop: 10,
+        marginBottom: 16,
+    },
+    aiPromptCard: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.3)',
+    },
+    aiPromptGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 14,
+    },
+    aiPromptLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    aiSparkleBox: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255, 36, 66, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    aiPromptTextBox: {
+        flex: 1,
+    },
+    aiPromptHeadline: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '800',
+        letterSpacing: 0.3,
+    },
+    aiPromptSub: {
+        color: '#98A2B3',
+        fontSize: 11,
+        marginTop: 2,
+    },
+    aiPromptArrow: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 10,
+    },
+    genreRowContainer: {
+        marginBottom: 20,
+    },
+    genreScroll: {
+        paddingHorizontal: 18,
+        gap: 8,
+    },
+    genrePill: {
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        overflow: 'hidden',
+    },
+    genrePillActive: {
+        borderColor: '#FF2442',
+    },
+    genreGradient: {
+        paddingHorizontal: 16,
+        paddingVertical: 7,
+    },
+    genreText: {
+        color: '#98A2B3',
+        fontSize: 12.5,
+        fontWeight: '600',
+        paddingHorizontal: 16,
+        paddingVertical: 7,
+    },
+    genreTextActive: {
+        color: '#FFFFFF',
+        fontSize: 12.5,
+        fontWeight: '800',
+    },
+    sectionContainer: {
+        marginBottom: 26,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 12,
-        gap: 8,
-    },
-    sectionHeaderBetween: {
-        flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
+        paddingHorizontal: 18,
         marginBottom: 12,
     },
-    sectionHeaderTitleRow: {
+    sectionTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-    },
-    seeAllBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 2,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-    },
-    seeAllText: {
-        color: '#FF3030',
-        fontSize: 12,
-        fontWeight: '800',
-    },
-    sectionAccent: {
-        width: 4,
-        height: 18,
-        borderRadius: 2,
-        backgroundColor: '#FF3030',
+        gap: 7,
     },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: '900',
+        color: '#FFFFFF',
+        fontSize: 17,
+        fontWeight: '800',
+        letterSpacing: 0.2,
     },
-    topTenItemContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginRight: 6,
-        position: 'relative',
+    seeAllText: {
+        color: '#FF2442',
+        fontSize: 12,
+        fontWeight: '700',
     },
-    topTenRankNumber: {
-        fontSize: 90,
-        fontWeight: '900',
-        color: '#FF3030',
-        opacity: 0.85,
-        marginRight: -22,
-        zIndex: 1,
-        fontStyle: 'italic',
-        textShadowColor: 'rgba(0, 0, 0, 0.9)',
-        textShadowOffset: { width: 3, height: 3 },
-        textShadowRadius: 6,
-    },
-    topTenCardOffset: {
-        zIndex: 2,
-    },
-    continueCard: {
-        width: 230,
-        height: 135,
-        borderRadius: 14,
-        overflow: 'hidden',
-        marginRight: 14,
-        borderWidth: 1.2,
-        position: 'relative',
-    },
-    continueCardTV: {
-        width: 320,
-        height: 180,
-    },
-    continueImage: {
-        width: '100%',
-        height: '100%',
-    },
-    continuePlayOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 3,
-    },
-    continuePlayCircle: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        backgroundColor: 'rgba(255, 48, 48, 0.88)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.4,
-        shadowRadius: 4,
-    },
-    continueTopRow: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        zIndex: 4,
-    },
-    continueTagPill: {
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    trendingBadge: {
+        backgroundColor: 'rgba(255, 36, 66, 0.15)',
         paddingHorizontal: 7,
         paddingVertical: 2,
         borderRadius: 6,
+    },
+    trendingBadgeText: {
+        color: '#FF2442',
+        fontSize: 9.5,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    horizontalList: {
+        paddingHorizontal: 18,
+    },
+    cwCard: {
+        width: 170,
+        marginRight: 14,
+    },
+    cwImageContainer: {
+        width: 170,
+        height: 100,
+        borderRadius: 14,
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: '#12161F',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
     },
-    continueTagText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '800',
+    cwImage: {
+        width: '100%',
+        height: '100%',
     },
-    continueGradient: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: '65%',
-        justifyContent: 'flex-end',
-        padding: 10,
-        zIndex: 2,
+    cwPlayOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    continueTitle: {
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: '800',
+    cwPlayCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FF2442',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    continueSubtitle: {
-        color: '#FF4D4D',
-        fontSize: 11,
-        fontWeight: '700',
-        marginTop: 2,
-    },
-    progressBarTrack: {
+    cwProgressTrack: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
         height: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        zIndex: 5,
+        backgroundColor: 'rgba(255,255,255,0.2)',
     },
-    progressBarFill: {
-        height: '100%',
+    cwProgressBar: {
+        height: 4,
+        backgroundColor: '#FF2442',
     },
-    emptyProgressCard: {
-        marginHorizontal: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1.2,
-        gap: 12,
+    cwTitle: {
+        color: '#FFFFFF',
+        fontSize: 12.5,
+        fontWeight: '700',
+        marginTop: 6,
     },
-    emptyProgressCardTV: {
-        marginRight: 60,
-    },
-    emptyProgressIconCircle: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: 'rgba(255, 48, 48, 0.12)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 48, 48, 0.3)',
-    },
-    emptyProgressTextWrapper: {
-        flex: 1,
-    },
-    emptyProgressTitle: {
-        fontSize: 14,
-        fontWeight: '800',
-        marginBottom: 2,
-    },
-    emptyProgressSubtitle: {
-        color: '#8A99A8',
-        fontSize: 12,
-    },
-    tvFocusBorder: {
-        borderWidth: 3,
-        borderColor: '#FF3030',
-        shadowColor: '#FF3030',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 16,
-        elevation: 10,
-        transform: [{ scale: 1.05 }],
+    cwSub: {
+        color: '#FF2442',
+        fontSize: 11,
+        fontWeight: '600',
+        marginTop: 1,
     },
 });

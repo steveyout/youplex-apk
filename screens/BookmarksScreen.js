@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bookmark, Film, Trash2, Clapperboard, Compass } from 'lucide-react-native';
+import { Bookmark, Trash2, Compass } from 'lucide-react-native';
 import { useAppTheme } from '../theme/ThemeContext';
 import { TopBar } from '../components/TopBar';
 import { MovieCard } from '../components/MovieCard';
@@ -20,12 +20,12 @@ import { isTV } from '../utils/device';
 const { width } = Dimensions.get('window');
 
 export const BookmarksScreen = () => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
 
     const [bookmarks, setBookmarks] = useState([]);
-    const [filter, setFilter] = useState('all'); // 'all', 'movie', 'tv'
+    const [filter, setFilter] = useState('all');
 
     const TV_LEFT_OFFSET = 100;
 
@@ -57,34 +57,26 @@ export const BookmarksScreen = () => {
     });
 
     const numColumns = isTV ? 5 : 3;
-    const safeTopMargin = isTV ? 130 : Math.max(insets.top + 92, Platform.OS === 'ios' ? 140 : 128);
+    const safeTopMargin = isTV ? 110 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: '#08090C' }]}>
             <TopBar />
 
-            {/* Header Area placed safely beneath TopBar */}
+            {/* Header Area */}
             <View style={[styles.header, { marginTop: safeTopMargin }, isTV && styles.headerTV]}>
                 <View style={styles.headerTitleRow}>
                     <View style={styles.titleAccent} />
-                    <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
-                        My List
-                    </Text>
+                    <Text style={styles.headerTitle}>Watchlist</Text>
                     <View style={styles.badge}>
                         <Text style={styles.badgeText}>{bookmarks.length}</Text>
                     </View>
                 </View>
 
                 {bookmarks.length > 0 && (
-                    <Pressable
-                        onPress={handleClearAll}
-                        style={({ focused }) => [
-                            styles.clearBtnWrapper,
-                            focused && styles.tvFocusBorder,
-                        ]}
-                    >
-                        <Trash2 size={isTV ? 20 : 15} color="#FF5252" />
-                        <Text style={[styles.clearBtnText, isTV && { fontSize: 16 }]}>Clear</Text>
+                    <Pressable onPress={handleClearAll} style={styles.clearBtnWrapper}>
+                        <Trash2 size={14} color="#FF2442" />
+                        <Text style={styles.clearBtnText}>Clear All</Text>
                     </Pressable>
                 )}
             </View>
@@ -95,7 +87,7 @@ export const BookmarksScreen = () => {
                     {[
                         { key: 'all', label: 'All Saved' },
                         { key: 'movie', label: 'Movies' },
-                        { key: 'tv', label: 'TV Shows' },
+                        { key: 'tv', label: 'TV Series' },
                     ].map((tab) => {
                         const isActive = filter === tab.key;
                         return (
@@ -105,14 +97,12 @@ export const BookmarksScreen = () => {
                                 style={[
                                     styles.filterTab,
                                     isActive && styles.filterTabActive,
-                                    { borderColor: isActive ? '#FF3030' : theme.colors.outlineVariant },
                                 ]}
                             >
                                 <Text
                                     style={[
                                         styles.filterTabText,
                                         isActive && styles.filterTabTextActive,
-                                        { color: isActive ? '#FFFFFF' : (isDarkMode ? '#8A99A8' : '#6B7280') },
                                     ]}
                                 >
                                     {tab.label}
@@ -137,49 +127,30 @@ export const BookmarksScreen = () => {
                             style={styles.deleteBadge}
                             hitSlop={8}
                         >
-                            <Trash2 size={12} color="#FFFFFF" />
+                            <Trash2 size={11} color="#FFFFFF" />
                         </Pressable>
                     </View>
                 )}
                 contentContainerStyle={[
                     styles.listContent,
                     isTV && styles.listContentTV,
-                    { paddingBottom: 150 + insets.bottom },
+                    { paddingBottom: 110 + insets.bottom },
                 ]}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     <View style={[styles.emptyContainer, isTV && { marginLeft: -TV_LEFT_OFFSET }]}>
-                        <View
-                            style={[
-                                styles.emptyIconCircle,
-                                {
-                                    backgroundColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.12)'
-                                        : 'rgba(255, 48, 48, 0.08)',
-                                    borderColor: isDarkMode
-                                        ? 'rgba(255, 48, 48, 0.25)'
-                                        : 'rgba(255, 48, 48, 0.15)',
-                                },
-                            ]}
-                        >
-                            <Bookmark size={isTV ? 64 : 44} color="#FF3030" strokeWidth={1.8} />
+                        <View style={styles.emptyIconCircle}>
+                            <Bookmark size={isTV ? 48 : 36} color="#FF2442" strokeWidth={1.8} />
                         </View>
-                        <Text
-                            style={[
-                                styles.emptyTitle,
-                                { color: isDarkMode ? '#FFFFFF' : '#111827' },
-                            ]}
-                        >
-                            Your Watchlist is Empty
-                        </Text>
+                        <Text style={styles.emptyTitle}>Your Watchlist is Empty</Text>
                         <Text style={styles.emptySubtitle}>
-                            Save movies and shows you want to watch later by tapping "+ My List" on any title.
+                            Save movies and shows you want to watch later by tapping "+ Watchlist" on any title.
                         </Text>
                         <Pressable
                             style={styles.exploreBtn}
                             onPress={() => navigation.navigate('Home')}
                         >
-                            <Compass size={18} color="#FFFFFF" />
+                            <Compass size={17} color="#FFFFFF" />
                             <Text style={styles.exploreBtnText}>Browse Trending</Text>
                         </Pressable>
                     </View>
@@ -197,89 +168,91 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        marginBottom: 14,
+        paddingHorizontal: 18,
+        marginBottom: 12,
     },
     headerTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     headerTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
     },
     titleAccent: {
         width: 4,
-        height: 24,
+        height: 18,
         borderRadius: 2,
-        backgroundColor: '#FF3030',
+        backgroundColor: '#FF2442',
     },
     headerTitle: {
-        fontSize: isTV ? 32 : 24,
+        fontSize: 20,
         fontWeight: '900',
+        letterSpacing: 0.3,
+        color: '#FFFFFF',
     },
     badge: {
-        backgroundColor: '#FF3030',
-        paddingHorizontal: 8,
+        backgroundColor: 'rgba(255, 36, 66, 0.16)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.35)',
+        paddingHorizontal: 7,
         paddingVertical: 2,
         borderRadius: 10,
     },
     badgeText: {
-        color: '#FFFFFF',
-        fontSize: 12,
+        color: '#FF2442',
+        fontSize: 11,
         fontWeight: '800',
     },
     clearBtnWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        backgroundColor: 'rgba(255, 82, 82, 0.12)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 82, 82, 0.3)',
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 12,
+        gap: 5,
     },
     clearBtnText: {
-        color: '#FF5252',
+        color: '#FF2442',
+        fontSize: 11.5,
         fontWeight: '700',
-        fontSize: 12,
     },
     filterRow: {
         flexDirection: 'row',
-        paddingHorizontal: 20,
-        marginBottom: 16,
+        paddingHorizontal: 18,
         gap: 8,
+        marginBottom: 14,
     },
     filterRowTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     filterTab: {
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 18,
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        borderRadius: 14,
+        backgroundColor: '#12161F',
         borderWidth: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     filterTabActive: {
-        backgroundColor: '#FF3030',
-        borderColor: '#FF3030',
+        backgroundColor: 'rgba(255, 36, 66, 0.18)',
+        borderColor: '#FF2442',
     },
     filterTabText: {
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: '600',
+        color: '#98A2B3',
     },
     filterTabTextActive: {
-        fontWeight: '900',
+        color: '#FF2442',
+        fontWeight: '800',
     },
     listContent: {
         paddingHorizontal: 16,
     },
     listContentTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     cardContainer: {
         position: 'relative',
@@ -288,60 +261,55 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 6,
         right: 14,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: 'rgba(239, 68, 68, 0.9)',
+        backgroundColor: 'rgba(255, 36, 66, 0.85)',
+        width: 22,
+        height: 22,
+        borderRadius: 11,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10,
+        zIndex: 5,
     },
     emptyContainer: {
+        paddingTop: 80,
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 80,
-        paddingHorizontal: 24,
+        paddingHorizontal: 30,
     },
     emptyIconCircle: {
-        width: 88,
-        height: 88,
-        borderRadius: 44,
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1.5,
-        marginBottom: 18,
+        marginBottom: 16,
     },
     emptyTitle: {
-        fontSize: 22,
-        fontWeight: '900',
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: '800',
         marginBottom: 8,
-        textAlign: 'center',
     },
     emptySubtitle: {
-        color: '#8A99A8',
-        fontSize: 14,
+        color: '#98A2B3',
+        fontSize: 13,
         textAlign: 'center',
-        lineHeight: 20,
-        maxWidth: 320,
+        lineHeight: 18,
         marginBottom: 24,
     },
     exploreBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FF3030',
-        paddingHorizontal: 22,
-        paddingVertical: 12,
-        borderRadius: 24,
+        backgroundColor: '#FF2442',
+        paddingHorizontal: 18,
+        paddingVertical: 11,
+        borderRadius: 20,
         gap: 8,
     },
     exploreBtnText: {
         color: '#FFFFFF',
+        fontSize: 13,
         fontWeight: '800',
-        fontSize: 14,
-    },
-    tvFocusBorder: {
-        borderWidth: 2,
-        borderColor: '#FF3030',
-        transform: [{ scale: 1.05 }],
     },
 });

@@ -1,6 +1,7 @@
 /**
  * Provider Service for Youplex
- * 100% Native Playback Engine using @p-stream/providers with Automatic Server Switching.
+ * Primary Playback Engine powered by @vyla-entertainment/sdk multi-provider scrapers.
+ * Secondary Failover Engine powered by native @p-stream/providers & cloud scrapers.
  * Anti-403 stream proxy header synthesis and verified enabled scrapers only.
  */
 
@@ -11,6 +12,13 @@ import {
     makeStandardFetcher,
     makeSimpleProxyFetcher,
 } from '@p-stream/providers';
+
+import {
+    resolveVylaPrimary,
+    resolveVylaFallback,
+    VYLA_PROVIDERS,
+    fetchVylaSubtitles,
+} from './vylaFallbackService';
 
 const M3U8_PROXY_URL = 'https://proxy.youplex.site';
 const CORS_PROXY_URL = 'https://simple-proxy-2.youtsteve1.workers.dev';
@@ -41,7 +49,7 @@ export function getProvidersInstance() {
     return providersInstance;
 }
 
-// Friendly metadata mapping for enabled scrapers
+// Friendly metadata mapping for secondary @p-stream scrapers
 const PROVIDER_METADATA = {
     'yp-flixhq-1': { name: 'Horizon Play', label: 'Horizon Play (Ultra Fast)' },
     'yp-flixhq-2': { name: 'Quantum Player', label: 'Quantum Player (1080p)' },
@@ -50,8 +58,7 @@ const PROVIDER_METADATA = {
 };
 
 /**
- * Filter and list ONLY verified enabled sources from the @p-stream/providers package.
- * Excludes all broken/disabled scrapers to ensure zero playback failover overhead.
+ * Filter and list verified sources from @p-stream/providers as resilient secondary fallbacks.
  */
 const VERIFIED_ENABLED_PROVIDER_IDS = [
     'yp-flixhq-1', // Horizon Play (Ultra Fast Direct HLS)
@@ -67,33 +74,54 @@ function getEnabledProviders() {
             id,
             name: meta.name || id,
             label: meta.label || id,
-            rank: 100,
+            rank: 80,
             mediaTypes: ['movie', 'show'],
+            isSecondary: true,
         };
     });
 }
 
 export const PSTREAM_SOURCES = getEnabledProviders();
 
-export const DEFAULT_PROVIDER_ID = 'yp-flixhq-1';
+/**
+ * All playback sources with Vyla SDK sources ranked as PRIMARY (Rank 100)
+ * and @p-stream sources as SECONDARY fallback (Rank 80).
+ */
+export const ALL_PLAYBACK_SOURCES = [
+    ...VYLA_PROVIDERS.map((v) => ({
+        id: v.id,
+        name: v.name,
+        label: v.label,
+        rank: 100,
+        mediaTypes: ['movie', 'show'],
+        isVylaPrimary: true,
+    })),
+    ...PSTREAM_SOURCES,
+];
+
+// Primary default provider is Vyla VidLink Pro
+export const DEFAULT_PROVIDER_ID = 'vyla-vidlink';
 
 export function listAvailableProviders() {
-    return PSTREAM_SOURCES.map((s) => ({
+    return ALL_PLAYBACK_SOURCES.map((s) => ({
         id: s.id,
         name: s.name,
         label: s.label,
+        isVylaPrimary: Boolean(s.isVylaPrimary),
+        isSecondary: Boolean(s.isSecondary),
     }));
 }
 
 export function getProviderFriendlyName(id) {
-    if (!id) return 'Horizon Play';
-    const found = PSTREAM_SOURCES.find((s) => s.id === id);
+    if (!id) return 'Vyla VidLink Pro';
+    const found = ALL_PLAYBACK_SOURCES.find((s) => s.id === id);
     if (found) return found.label;
 
     const meta = PROVIDER_METADATA[id];
     if (meta) return meta.label;
 
     return String(id)
+        .replace(/^vyla-/, 'Vyla ')
         .replace(/^yp-/, '')
         .replace(/-\d+$/, '')
         .replace(/[-_]/g, ' ')
@@ -134,9 +162,6 @@ export function extractStreamHeaders(url, existingHeaders = {}) {
     const isYouplexProxy = url.includes('youplex.site') || url.includes('/proxy');
 
     if (isYouplexProxy) {
-        // Anti-403 Enforcement: BunkerWeb WAF strictly requires native ExoPlayer identity
-        // and rejects cross-origin third-party origins (such as movish.to) with HTTP 403 Forbidden.
-        // Existing headers must NEVER overwrite these credentials on youplex.site proxy requests.
         return {
             'User-Agent': 'ExoPlayer',
             'Origin': 'https://youplex.site',
@@ -228,11 +253,9 @@ function formatSourcesFromStream(streamResult, providerId = '') {
 }
 
 /**
- * Scrapes a single provider:
- * 1. Executes native @p-stream/providers source scraper directly.
- * 2. Falls back to the cloud scraper API cluster if native direct execution finds no stream.
+ * Scrapes a single secondary provider (@p-stream / cloud endpoints):
  */
-async function scrapeSingleProvider({
+async function scrapeSingleSecondaryProvider({
     id,
     type,
     providerId,
@@ -278,6 +301,7 @@ async function scrapeSingleProvider({
 
                     return {
                         success: true,
+                        isFallback: true,
                         provider: providerId,
                         providerLabel: getProviderFriendlyName(providerId),
                         sources,
@@ -346,9 +370,10 @@ async function scrapeSingleProvider({
                         }));
 
                     if (sources.length > 0) {
-                        const resolvedProvider = providerId || data.provider || DEFAULT_PROVIDER_ID;
+                        const resolvedProvider = providerId || data.provider || 'yp-flixhq-1';
                         return {
                             success: true,
+                            isFallback: true,
                             provider: resolvedProvider,
                             providerLabel: getProviderFriendlyName(resolvedProvider),
                             sources,
@@ -367,7 +392,8 @@ async function scrapeSingleProvider({
 
 /**
  * Auto-switching stream scraper:
- * Iterates through @p-stream/providers enabled sources in priority order until a working stream is resolved.
+ * 1. TIER 1 (PRIMARY): @vyla-entertainment/sdk multi-provider scrapers (VidLink Pro, Vyla Core, TaroFlix, VidCore).
+ * 2. TIER 2 (FALLBACK): @p-stream/providers verified scrapers & cloud scraper API cluster.
  */
 export async function scrapeMediaWithAutoSwitch({
     id,
@@ -380,30 +406,89 @@ export async function scrapeMediaWithAutoSwitch({
     onProgress = null,
     triedProviders = [],
 }) {
-    // Build ordered list of enabled providers to try
-    let queue = [...PSTREAM_SOURCES.map((s) => s.id)];
+    const isPreferredSecondary = preferredProvider && !preferredProvider.startsWith('vyla-');
 
-    // Place preferredProvider at the top of the queue if specified
-    if (preferredProvider) {
-        queue = [preferredProvider, ...queue.filter((p) => p !== preferredProvider)];
-    }
+    // Case A: User explicitly picked a secondary provider (@p-stream)
+    if (isPreferredSecondary) {
+        onProgress?.({
+            type: 'start',
+            message: `Connecting to requested server: ${getProviderFriendlyName(preferredProvider)}...`,
+        });
 
-    // Filter out already tried providers if auto-switching in-stream
-    if (triedProviders && triedProviders.length > 0) {
-        queue = queue.filter((p) => !triedProviders.includes(p));
-        if (queue.length === 0) {
-            queue = [...PSTREAM_SOURCES.map((s) => s.id)];
+        const directResult = await scrapeSingleSecondaryProvider({
+            id,
+            type,
+            providerId: preferredProvider,
+            title,
+            releaseYear,
+            season,
+            episode,
+        });
+
+        if (directResult && directResult.success && directResult.sources?.length > 0) {
+            return {
+                ...directResult,
+                attemptIndex: 0,
+                triedProviders: [...triedProviders, preferredProvider],
+            };
         }
     }
 
+    // --- PHASE 1 (PRIMARY): Vyla SDK Multi-Provider Resolver ---
     onProgress?.({
         type: 'start',
-        message: 'Resolving stream from verified enabled @p-stream providers...',
+        message: 'Resolving stream from primary Vyla SDK sources...',
     });
 
-    // Query specific enabled providers in order
-    for (let i = 0; i < queue.length; i++) {
-        const provId = queue[i];
+    const vylaTargetKey = (preferredProvider && preferredProvider.startsWith('vyla-'))
+        ? preferredProvider
+        : DEFAULT_PROVIDER_ID;
+
+    // Filter out already tried Vyla providers if applicable
+    const availableVyla = VYLA_PROVIDERS.filter((p) => !triedProviders.includes(p.id));
+
+    if (availableVyla.length > 0) {
+        try {
+            const vylaPrimaryResult = await resolveVylaPrimary({
+                id,
+                type,
+                season: Number(season) || 1,
+                episode: Number(episode) || 1,
+                preferredVylaKey: vylaTargetKey,
+                onProgress,
+                isFallback: false,
+            });
+
+            if (vylaPrimaryResult && vylaPrimaryResult.success && vylaPrimaryResult.sources?.length > 0) {
+                return {
+                    ...vylaPrimaryResult,
+                    isVylaPrimary: true,
+                    attemptIndex: 0,
+                    triedProviders: [...triedProviders, vylaPrimaryResult.provider],
+                };
+            }
+        } catch (vylaErr) {
+            console.warn('Vyla primary resolver notice:', vylaErr);
+        }
+    }
+
+    // --- PHASE 2 (FALLBACK): Failover to @p-stream/providers & cloud scrapers ---
+    onProgress?.({
+        type: 'fallback_start',
+        message: 'Primary Vyla sources exhausted. Activating secondary @p-stream fallback...',
+    });
+
+    let secondaryQueue = [...PSTREAM_SOURCES.map((s) => s.id)];
+
+    if (triedProviders && triedProviders.length > 0) {
+        secondaryQueue = secondaryQueue.filter((p) => !triedProviders.includes(p));
+        if (secondaryQueue.length === 0) {
+            secondaryQueue = [...PSTREAM_SOURCES.map((s) => s.id)];
+        }
+    }
+
+    for (let i = 0; i < secondaryQueue.length; i++) {
+        const provId = secondaryQueue[i];
         const label = getProviderFriendlyName(provId);
 
         onProgress?.({
@@ -411,11 +496,11 @@ export async function scrapeMediaWithAutoSwitch({
             provider: provId,
             label,
             index: i + 1,
-            total: queue.length,
-            message: `Connecting to ${label} (${i + 1}/${queue.length})...`,
+            total: secondaryQueue.length,
+            message: `Failover to ${label} (${i + 1}/${secondaryQueue.length})...`,
         });
 
-        const result = await scrapeSingleProvider({
+        const result = await scrapeSingleSecondaryProvider({
             id,
             type,
             providerId: provId,
@@ -428,8 +513,9 @@ export async function scrapeMediaWithAutoSwitch({
         if (result && result.success && result.sources?.length > 0) {
             return {
                 ...result,
+                isFallback: true,
                 attemptIndex: i,
-                triedProviders: [...triedProviders, provId],
+                triedProviders: [...triedProviders, ...VYLA_PROVIDERS.map((v) => v.id), provId],
             };
         }
     }
@@ -438,7 +524,7 @@ export async function scrapeMediaWithAutoSwitch({
         success: false,
         sources: [],
         subtitles: [],
-        triedProviders: queue,
+        triedProviders: [...triedProviders, ...VYLA_PROVIDERS.map((v) => v.id), ...secondaryQueue],
     };
 }
 

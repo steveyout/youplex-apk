@@ -6,7 +6,6 @@ import {
     ScrollView,
     Pressable,
     Switch,
-    Alert,
     Platform,
     Linking,
 } from 'react-native';
@@ -14,7 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     Moon,
-    Sun,
     Server,
     Trash2,
     Shield,
@@ -22,18 +20,18 @@ import {
     ChevronRight,
     Github,
     Zap,
-    Bookmark,
     Check,
+    Sparkles,
 } from 'lucide-react-native';
 import { useAppTheme } from '../theme/ThemeContext';
 import { TopBar } from '../components/TopBar';
 import { clearHistory } from '../services/historyService';
 import { clearBookmarks } from '../services/bookmarksService';
-import { PSTREAM_SOURCES, DEFAULT_PROVIDER_ID } from '../services/providerService';
+import { ALL_PLAYBACK_SOURCES, DEFAULT_PROVIDER_ID } from '../services/providerService';
 import { isTV } from '../utils/device';
 
 export const SettingsScreen = () => {
-    const { theme, isDarkMode, toggleTheme } = useAppTheme();
+    const { theme } = useAppTheme();
     const insets = useSafeAreaInsets();
     const [selectedProvider, setSelectedProvider] = useState(DEFAULT_PROVIDER_ID);
     const [autoFailover, setAutoFailover] = useState(true);
@@ -42,13 +40,13 @@ export const SettingsScreen = () => {
 
     const handleClearHistory = async () => {
         await clearHistory();
-        setNotice('Watch history successfully cleared!');
+        setNotice('Watch history cleared successfully.');
         setTimeout(() => setNotice(''), 3000);
     };
 
     const handleClearBookmarks = async () => {
         await clearBookmarks();
-        setNotice('Bookmarks successfully cleared!');
+        setNotice('Watchlist cleared successfully.');
         setTimeout(() => setNotice(''), 3000);
     };
 
@@ -56,10 +54,10 @@ export const SettingsScreen = () => {
         Linking.openURL('https://github.com/steveyout/youplex-apk').catch(() => {});
     };
 
-    const safeTopPadding = isTV ? 130 : Math.max(insets.top + 92, Platform.OS === 'ios' ? 140 : 128);
+    const safeTopPadding = isTV ? 110 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.container, { backgroundColor: '#08090C' }]}>
             <TopBar />
 
             <ScrollView
@@ -68,106 +66,66 @@ export const SettingsScreen = () => {
                     styles.scrollContent,
                     {
                         paddingTop: safeTopPadding,
-                        paddingBottom: 150 + insets.bottom,
+                        paddingBottom: 110 + insets.bottom,
                     },
                     isTV && styles.scrollContentTV,
                 ]}
             >
-                {/* Header Title safely beneath TopBar */}
+                {/* Header Title */}
                 <View style={styles.header}>
                     <View style={styles.titleAccent} />
-                    <Text style={[styles.headerTitle, { color: theme.colors.onBackground }]}>
-                        Settings & Preferences
-                    </Text>
+                    <Text style={styles.headerTitle}>Settings & Engine</Text>
                 </View>
 
                 {Boolean(notice) && (
                     <View style={styles.successNotice}>
-                        <Check size={16} color="#10B981" />
+                        <Check size={16} color="#FF2442" />
                         <Text style={styles.successNoticeText}>{notice}</Text>
                     </View>
                 )}
 
-                {/* SECTION 1: APPEARANCE */}
+                {/* SECTION 1: AI & THEME */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>APPEARANCE</Text>
-                    <View
-                        style={[
-                            styles.card,
-                            {
-                                backgroundColor: theme.colors.cardBg,
-                                borderColor: theme.colors.cardBorder,
-                            },
-                        ]}
-                    >
+                    <Text style={styles.sectionLabel}>DESIGN SYSTEM</Text>
+                    <View style={styles.card}>
                         <View style={styles.row}>
                             <View style={styles.rowLeft}>
                                 <View style={styles.iconCircle}>
-                                    {isDarkMode ? (
-                                        <Moon size={20} color="#FF3030" />
-                                    ) : (
-                                        <Sun size={20} color="#FFD700" />
-                                    )}
+                                    <Sparkles size={18} color="#FF2442" />
                                 </View>
                                 <View>
-                                    <Text style={[styles.rowTitle, { color: theme.colors.onSurface }]}>
-                                        Theme Mode
-                                    </Text>
-                                    <Text style={styles.rowDesc}>
-                                        {isDarkMode ? 'Dark Reddish Cinematic Theme' : 'Light Clean Theme'}
-                                    </Text>
+                                    <Text style={styles.rowTitle}>Theme & Aesthetic</Text>
+                                    <Text style={styles.rowDesc}>Dark UI/UX with Crimson Neon Accents</Text>
                                 </View>
                             </View>
-                            <Pressable
-                                onPress={toggleTheme}
-                                style={styles.themeTogglePill}
-                            >
-                                <LinearGradient
-                                    colors={['#FF4565', '#FF3030', '#B71833']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.toggleGradient}
-                                >
-                                    <Text style={styles.toggleText}>
-                                        {isDarkMode ? 'DARK' : 'LIGHT'}
-                                    </Text>
-                                </LinearGradient>
-                            </Pressable>
+                            <View style={styles.activeThemeBadge}>
+                                <Text style={styles.activeThemeBadgeText}>ACTIVE</Text>
+                            </View>
                         </View>
                     </View>
                 </View>
 
-                {/* SECTION 2: STREAMING & PLAYBACK */}
+                {/* SECTION 2: STREAMING & VYLA ENGINE */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>STREAMING & ENGINE</Text>
-                    <View
-                        style={[
-                            styles.card,
-                            {
-                                backgroundColor: theme.colors.cardBg,
-                                borderColor: theme.colors.cardBorder,
-                            },
-                        ]}
-                    >
+                    <Text style={styles.sectionLabel}>STREAMING & RESOLVERS</Text>
+                    <View style={styles.card}>
                         {/* Auto-Failover Switch */}
                         <View style={styles.row}>
                             <View style={styles.rowLeft}>
                                 <View style={styles.iconCircle}>
-                                    <Zap size={20} color="#10B981" />
+                                    <Zap size={18} color="#FF2442" />
                                 </View>
                                 <View>
-                                    <Text style={[styles.rowTitle, { color: theme.colors.onSurface }]}>
-                                        Auto-Failover
-                                    </Text>
+                                    <Text style={styles.rowTitle}>Auto-Failover with Vyla SDK</Text>
                                     <Text style={styles.rowDesc}>
-                                        Automatically switches sources on 403 / stream errors
+                                        Auto-switches to Vyla SDK fallback when stream fails
                                     </Text>
                                 </View>
                             </View>
                             <Switch
                                 value={autoFailover}
                                 onValueChange={setAutoFailover}
-                                trackColor={{ false: '#3A3F48', true: '#FF3030' }}
+                                trackColor={{ false: '#202632', true: '#FF2442' }}
                                 thumbColor="#FFFFFF"
                             />
                         </View>
@@ -181,23 +139,22 @@ export const SettingsScreen = () => {
                         >
                             <View style={styles.rowLeft}>
                                 <View style={styles.iconCircle}>
-                                    <Server size={20} color="#FF4D4D" />
+                                    <Server size={18} color="#FF2442" />
                                 </View>
                                 <View>
-                                    <Text style={[styles.rowTitle, { color: theme.colors.onSurface }]}>
-                                        Preferred Provider
-                                    </Text>
+                                    <Text style={styles.rowTitle}>Primary Stream Provider</Text>
                                     <Text style={styles.rowDesc}>
-                                        {PSTREAM_SOURCES.find((s) => s.id === selectedProvider)?.label || 'NovaLink (Fast)'}
+                                        {ALL_PLAYBACK_SOURCES.find((s) => s.id === selectedProvider)?.label ||
+                                            'Horizon Play (Ultra Fast)'}
                                     </Text>
                                 </View>
                             </View>
-                            <ChevronRight size={18} color="#8A99A8" />
+                            <ChevronRight size={18} color="#98A2B3" />
                         </Pressable>
 
                         {showProviderPicker && (
                             <View style={styles.providerListContainer}>
-                                {PSTREAM_SOURCES.map((prov) => {
+                                {ALL_PLAYBACK_SOURCES.map((prov) => {
                                     const isChosen = prov.id === selectedProvider;
                                     return (
                                         <Pressable
@@ -211,15 +168,18 @@ export const SettingsScreen = () => {
                                                 setShowProviderPicker(false);
                                             }}
                                         >
-                                            <Text
-                                                style={[
-                                                    styles.providerOptionText,
-                                                    isChosen && { color: '#FF4D4D', fontWeight: '800' },
-                                                ]}
-                                            >
-                                                {prov.label}
-                                            </Text>
-                                            {isChosen && <Check size={16} color="#FF4D4D" />}
+                                            <View style={{ flex: 1 }}>
+                                                <Text
+                                                    style={[
+                                                        styles.providerOptionText,
+                                                        isChosen && { color: '#FF2442', fontWeight: '800' },
+                                                    ]}
+                                                >
+                                                    {prov.label}
+                                                </Text>
+                                                {prov.isVylaPrimary ? (<Text style={styles.vylaBadge}>Vyla SDK Primary Source</Text>) : (<Text style={[styles.vylaBadge, { color: '#98A2B3' }]}>Secondary Fallback Source</Text>)}
+                                            </View>
+                                            {isChosen && <Check size={16} color="#FF2442" />}
                                         </Pressable>
                                     );
                                 })}
@@ -228,101 +188,55 @@ export const SettingsScreen = () => {
                     </View>
                 </View>
 
-                {/* SECTION 3: PRIVACY & STORAGE */}
+                {/* SECTION 3: DATA MANAGEMENT */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionLabel}>DATA & PRIVACY</Text>
-                    <View
-                        style={[
-                            styles.card,
-                            {
-                                backgroundColor: theme.colors.cardBg,
-                                borderColor: theme.colors.cardBorder,
-                            },
-                        ]}
-                    >
+                    <Text style={styles.sectionLabel}>DATA MANAGEMENT</Text>
+                    <View style={styles.card}>
                         <Pressable style={styles.rowPressable} onPress={handleClearHistory}>
                             <View style={styles.rowLeft}>
-                                <View style={[styles.iconCircle, { backgroundColor: 'rgba(255, 82, 82, 0.12)' }]}>
-                                    <Trash2 size={20} color="#FF5252" />
+                                <View style={styles.iconCircle}>
+                                    <Trash2 size={18} color="#FF2442" />
                                 </View>
                                 <View>
-                                    <Text style={[styles.rowTitle, { color: '#FF5252' }]}>
-                                        Clear Watch History
-                                    </Text>
-                                    <Text style={styles.rowDesc}>
-                                        Remove all saved progress and playback logs
-                                    </Text>
+                                    <Text style={styles.rowTitle}>Clear Watch History</Text>
+                                    <Text style={styles.rowDesc}>Removes all continue watching records</Text>
                                 </View>
                             </View>
-                            <ChevronRight size={18} color="#8A99A8" />
+                            <ChevronRight size={18} color="#98A2B3" />
                         </Pressable>
 
                         <View style={styles.divider} />
 
                         <Pressable style={styles.rowPressable} onPress={handleClearBookmarks}>
                             <View style={styles.rowLeft}>
-                                <View style={[styles.iconCircle, { backgroundColor: 'rgba(255, 82, 82, 0.12)' }]}>
-                                    <Bookmark size={20} color="#FF5252" />
+                                <View style={styles.iconCircle}>
+                                    <Trash2 size={18} color="#FF2442" />
                                 </View>
                                 <View>
-                                    <Text style={[styles.rowTitle, { color: '#FF5252' }]}>
-                                        Clear My List (Bookmarks)
-                                    </Text>
-                                    <Text style={styles.rowDesc}>
-                                        Remove all saved movies and series
-                                    </Text>
+                                    <Text style={styles.rowTitle}>Clear Watchlist</Text>
+                                    <Text style={styles.rowDesc}>Removes all saved titles from My List</Text>
                                 </View>
                             </View>
-                            <ChevronRight size={18} color="#8A99A8" />
+                            <ChevronRight size={18} color="#98A2B3" />
                         </Pressable>
                     </View>
                 </View>
 
-                {/* SECTION 4: ABOUT & APP INFO */}
+                {/* SECTION 4: ABOUT */}
                 <View style={styles.section}>
                     <Text style={styles.sectionLabel}>ABOUT</Text>
-                    <View
-                        style={[
-                            styles.card,
-                            {
-                                backgroundColor: theme.colors.cardBg,
-                                borderColor: theme.colors.cardBorder,
-                            },
-                        ]}
-                    >
-                        <View style={styles.row}>
-                            <View style={styles.rowLeft}>
-                                <View style={styles.iconCircle}>
-                                    <Info size={20} color="#38BDF8" />
-                                </View>
-                                <View>
-                                    <Text style={[styles.rowTitle, { color: theme.colors.onSurface }]}>
-                                        Youplex Version
-                                    </Text>
-                                    <Text style={styles.rowDesc}>
-                                        v1.0.56 (Expo SDK 57 • React 19 Native Engine)
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-
-                        <View style={styles.divider} />
-
+                    <View style={styles.card}>
                         <Pressable style={styles.rowPressable} onPress={handleOpenRepo}>
                             <View style={styles.rowLeft}>
                                 <View style={styles.iconCircle}>
-                                    <Github size={20} color="#FFFFFF" />
+                                    <Github size={18} color="#FFFFFF" />
                                 </View>
                                 <View>
-                                    <Text style={[styles.rowTitle, { color: theme.colors.onSurface }]}>
-                                        GitHub Repository
-                                    </Text>
-                                    <Text style={styles.rowDesc}>
-                                        github.com/steveyout/youplex-apk
-                                    </Text>
+                                    <Text style={styles.rowTitle}>Youplex Streaming</Text>
+                                    <Text style={styles.rowDesc}>v2.0 • Android & Android TV</Text>
                                 </View>
                             </View>
-                            <ChevronRight size={18} color="#8A99A8" />
+                            <ChevronRight size={18} color="#98A2B3" />
                         </Pressable>
                     </View>
                 </View>
@@ -340,141 +254,143 @@ const styles = StyleSheet.create({
     },
     scrollContentTV: {
         paddingLeft: 120,
-        paddingRight: 60,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginBottom: 24,
+        gap: 8,
+        marginBottom: 16,
     },
     titleAccent: {
         width: 4,
-        height: 24,
+        height: 18,
         borderRadius: 2,
-        backgroundColor: '#FF3030',
+        backgroundColor: '#FF2442',
     },
     headerTitle: {
-        fontSize: isTV ? 32 : 24,
+        fontSize: 20,
         fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: 0.3,
     },
     successNotice: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
         borderWidth: 1,
-        borderColor: 'rgba(16, 185, 129, 0.4)',
-        paddingHorizontal: 16,
+        borderColor: 'rgba(255, 36, 66, 0.3)',
+        borderRadius: 12,
+        paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 14,
-        gap: 8,
         marginBottom: 16,
+        gap: 8,
     },
     successNoticeText: {
-        color: '#10B981',
+        color: '#FF2442',
         fontSize: 13,
         fontWeight: '700',
     },
     section: {
-        marginBottom: 24,
+        marginBottom: 20,
     },
     sectionLabel: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '800',
-        color: '#FF4D4D',
-        letterSpacing: 1.1,
-        marginBottom: 10,
-        marginLeft: 4,
+        color: '#98A2B3',
+        letterSpacing: 0.8,
+        marginBottom: 8,
+        paddingLeft: 4,
     },
     card: {
-        borderRadius: 20,
-        borderWidth: 1.2,
-        padding: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 3,
+        backgroundColor: '#0F1217',
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.07)',
+        overflow: 'hidden',
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
     },
     rowPressable: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
     },
     rowLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
         flex: 1,
+        gap: 12,
     },
     iconCircle: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: 'rgba(255, 48, 48, 0.12)',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.25)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 48, 48, 0.25)',
     },
     rowTitle: {
-        fontSize: 15,
+        color: '#FFFFFF',
+        fontSize: 14,
         fontWeight: '700',
-        marginBottom: 2,
     },
     rowDesc: {
-        fontSize: 12,
-        color: '#8A99A8',
+        color: '#98A2B3',
+        fontSize: 11,
+        marginTop: 2,
     },
-    themeTogglePill: {
-        borderRadius: 16,
-        overflow: 'hidden',
+    activeThemeBadge: {
+        backgroundColor: 'rgba(255, 36, 66, 0.15)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.3)',
     },
-    toggleGradient: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 16,
-    },
-    toggleText: {
-        color: '#FFFFFF',
-        fontSize: 12,
-        fontWeight: '900',
-        letterSpacing: 0.5,
+    activeThemeBadgeText: {
+        color: '#FF2442',
+        fontSize: 10,
+        fontWeight: '800',
     },
     divider: {
         height: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
-        marginHorizontal: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        marginHorizontal: 16,
     },
     providerListContainer: {
-        paddingHorizontal: 12,
-        paddingBottom: 8,
-        marginTop: 4,
+        backgroundColor: '#141821',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.06)',
+        paddingVertical: 6,
     },
     providerOption: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 12,
-        marginBottom: 4,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
     },
     providerOptionActive: {
-        backgroundColor: 'rgba(255, 48, 48, 0.15)',
+        backgroundColor: 'rgba(255, 36, 66, 0.1)',
     },
     providerOptionText: {
+        color: '#D0D5DD',
         fontSize: 13,
         fontWeight: '600',
-        color: '#8A99A8',
+    },
+    vylaBadge: {
+        color: '#FF2442',
+        fontSize: 10,
+        fontWeight: '700',
+        marginTop: 2,
     },
 });

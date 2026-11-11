@@ -9,10 +9,9 @@ import { useAppTheme } from '../theme/ThemeContext';
 import { isTV } from '../utils/device';
 
 export const BottomNav = ({ state, navigation }) => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const insets = useSafeAreaInsets();
 
-    // Ensure Android navigation bar is configured cleanly
     useEffect(() => {
         if (Platform.OS === 'android') {
             const setupNavBar = async () => {
@@ -21,9 +20,7 @@ export const BottomNav = ({ state, navigation }) => {
                     await NavigationBar.setBackgroundColorAsync('#00000000');
                     await NavigationBar.setBehaviorAsync('overlay-swipe');
                     await NavigationBar.setVisibilityAsync('hidden');
-                } catch (e) {
-                    // Handled gracefully in environments like Expo Go
-                }
+                } catch (e) {}
             };
             setupNavBar();
         }
@@ -42,42 +39,34 @@ export const BottomNav = ({ state, navigation }) => {
 
     const activeRouteName = getActiveRouteName(currentTab);
 
-    // Hide Bottom Nav on Video Player and Movie Detail screens for immersive viewing
+    // Hide Bottom Nav on Video Player and Movie Detail screens
     if (activeRouteName === 'Player' || activeRouteName === 'MovieDetail') return null;
 
     const navItems = [
         { name: 'Home', label: 'Home', icon: Home },
         { name: 'Movies', label: 'Movies', icon: Film },
         { name: 'Tv', label: 'TV Shows', icon: Tv },
-        { name: 'Bookmarks', label: 'My List', icon: Bookmark },
+        { name: 'Bookmarks', label: 'Watchlist', icon: Bookmark },
         { name: 'Settings', label: 'Settings', icon: Settings },
     ];
 
     const currentRouteName = state.routes[state.index]?.name;
 
-    // Dynamically calculate bottom offset so native Android buttons NEVER overlap the navbar
     const safeBottom = Math.max(
-        insets.bottom > 0 ? insets.bottom + 8 : 14,
-        Platform.OS === 'ios' ? 24 : 14
+        insets.bottom > 0 ? insets.bottom + 6 : 12,
+        Platform.OS === 'ios' ? 24 : 12
     );
 
     return (
-        <View
-            style={[
-                styles.wrapper,
-                { bottom: safeBottom },
-            ]}
-            pointerEvents="box-none"
-        >
-            {/* Elegant Frosted Glass Bar */}
+        <View style={[styles.wrapper, { bottom: safeBottom }]} pointerEvents="box-none">
             <BlurView
-                intensity={85}
-                tint={isDarkMode ? 'dark' : 'light'}
+                intensity={80}
+                tint="dark"
                 style={[
                     styles.container,
                     {
-                        backgroundColor: theme.colors.glassBg,
-                        borderColor: theme.colors.glassBorder,
+                        backgroundColor: 'rgba(12, 14, 18, 0.92)',
+                        borderColor: 'rgba(255, 255, 255, 0.08)',
                     },
                 ]}
             >
@@ -97,25 +86,26 @@ export const BottomNav = ({ state, navigation }) => {
                             key={item.name}
                             onPress={onPress}
                             style={styles.navItem}
-                            android_ripple={{ color: 'rgba(255, 48, 48, 0.15)', borderless: true }}
+                            android_ripple={{ color: 'rgba(255, 36, 66, 0.2)', borderless: true }}
                         >
                             <View style={[styles.navItemInner, isFocused && styles.navItemInnerFocused]}>
-                                <IconComponent
-                                    size={20}
-                                    strokeWidth={isFocused ? 2.5 : 1.8}
-                                    color={isFocused ? '#FF3030' : (isDarkMode ? '#8A99A8' : '#6B7280')}
-                                />
+                                <View style={[styles.iconContainer, isFocused && styles.iconContainerFocused]}>
+                                    <IconComponent
+                                        size={19}
+                                        strokeWidth={isFocused ? 2.5 : 1.8}
+                                        color={isFocused ? '#FF2442' : '#98A2B3'}
+                                    />
+                                </View>
                                 <Text
                                     style={[
                                         styles.label,
-                                        { color: isFocused ? '#FF3030' : (isDarkMode ? '#8A99A8' : '#6B7280') },
+                                        { color: isFocused ? '#FF2442' : '#8A99A8' },
                                         isFocused && styles.labelFocused,
                                     ]}
                                     numberOfLines={1}
                                 >
                                     {item.label}
                                 </Text>
-                                {isFocused && <View style={styles.activeDot} />}
                             </View>
                         </Pressable>
                     );
@@ -128,27 +118,27 @@ export const BottomNav = ({ state, navigation }) => {
 const styles = StyleSheet.create({
     wrapper: {
         position: 'absolute',
-        width: Platform.OS === 'web' ? 460 : '92%',
-        maxWidth: 500,
-        alignSelf: 'center',
+        left: 20,
+        right: 20,
         alignItems: 'center',
-        zIndex: 1000,
+        zIndex: 99,
     },
     container: {
+        flexDirection: 'row',
         width: '100%',
+        maxWidth: 500,
         height: 64,
         borderRadius: 32,
-        flexDirection: 'row',
+        borderWidth: 1,
+        overflow: 'hidden',
+        paddingHorizontal: 8,
         alignItems: 'center',
         justifyContent: 'space-around',
-        overflow: 'hidden',
-        borderWidth: 1.2,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 14,
-        elevation: 8,
-        paddingHorizontal: 8,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 16,
     },
     navItem: {
         flex: 1,
@@ -159,33 +149,30 @@ const styles = StyleSheet.create({
     navItemInner: {
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'relative',
         paddingVertical: 4,
-        paddingHorizontal: 6,
+        paddingHorizontal: 8,
+        borderRadius: 16,
     },
     navItemInnerFocused: {
-        transform: [{ scale: 1.05 }],
+        backgroundColor: 'rgba(255, 36, 66, 0.08)',
+    },
+    iconContainer: {
+        width: 30,
+        height: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 15,
+        marginBottom: 2,
+    },
+    iconContainerFocused: {
+        backgroundColor: 'rgba(255, 36, 66, 0.16)',
     },
     label: {
-        fontSize: 10,
-        marginTop: 3,
+        fontSize: 10.5,
         fontWeight: '600',
-        letterSpacing: 0.3,
+        letterSpacing: 0.2,
     },
     labelFocused: {
-        fontWeight: '900',
-    },
-    activeDot: {
-        position: 'absolute',
-        bottom: -2,
-        width: 4,
-        height: 4,
-        borderRadius: 2,
-        backgroundColor: '#FF3030',
-        shadowColor: '#FF3030',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 1,
-        shadowRadius: 4,
-        elevation: 4,
+        fontWeight: '800',
     },
 });

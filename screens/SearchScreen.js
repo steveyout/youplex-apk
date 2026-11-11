@@ -8,24 +8,40 @@ import {
     TouchableWithoutFeedback,
     Platform,
     Dimensions,
+    TextInput,
+    Pressable,
+    ScrollView,
 } from 'react-native';
-import { Searchbar, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../theme/ThemeContext';
 import { MovieCard } from '../components/MovieCard';
-import { searchMulti, IMAGE_PATH } from '../services/api';
-import { Film } from 'lucide-react-native';
+import { searchMulti, getTrendingMovies, IMAGE_PATH } from '../services/api';
+import { Search, Sparkles, X, Flame } from 'lucide-react-native';
 import { isTV } from '../utils/device';
 
 const { width } = Dimensions.get('window');
 
+const EXPLORE_TAGS = [
+    'Sci-Fi',
+    'Action',
+    'Cyberpunk',
+    'Psychological',
+    'Anime',
+    'Marvel',
+    'Crime Noir',
+    'Comedy',
+    'Horror',
+];
+
 export const SearchScreen = () => {
-    const { theme, isDarkMode } = useAppTheme();
+    const { theme } = useAppTheme();
     const insets = useSafeAreaInsets();
     const [searchQuery, setSearchQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
-    const searchBarRef = useRef(null);
+    const [activeTag, setActiveTag] = useState(null);
+    const searchInputRef = useRef(null);
 
     const TV_LEFT_OFFSET = 100;
 
@@ -42,12 +58,17 @@ export const SearchScreen = () => {
                 const data = await searchMulti(searchQuery);
                 if (data && data.results) {
                     const filteredResults = data.results
-                        .filter((item) => item.media_type === 'movie' || item.media_type === 'tv')
+                        .filter(
+                            (item) =>
+                                (item.media_type === 'movie' || item.media_type === 'tv') &&
+                                item.poster_path
+                        )
                         .map((item) => ({
                             id: item.id,
                             title: item.title || item.name,
-                            image: item.poster_path ? `${IMAGE_PATH}${item.poster_path}` : null,
+                            image: `${IMAGE_PATH}${item.poster_path}`,
                             rating: item.vote_average?.toFixed(1) || 'N/A',
+                            year: (item.release_date || item.first_air_date || '').split('-')[0],
                             media_type: item.media_type,
                         }));
                     setResults(filteredResults);
@@ -57,46 +78,56 @@ export const SearchScreen = () => {
             } finally {
                 setLoading(false);
             }
-        }, 500);
+        }, 400);
 
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
 
+    const handleSelectTag = (tag) => {
+        setActiveTag(tag);
+        setSearchQuery(tag);
+    };
+
+    const handleClear = () => {
+        setSearchQuery('');
+        setActiveTag(null);
+        setResults([]);
+    };
+
     const renderEmptyState = () => (
-        <View style={[styles.emptyContainer, isTV && { marginLeft: -TV_LEFT_OFFSET }]}>
+        <View style={styles.emptyContainer}>
             {loading ? (
-                <ActivityIndicator size="large" color="#FF3030" />
+                <View style={styles.loadingBox}>
+                    <ActivityIndicator size="large" color="#FF2442" />
+                    <Text style={styles.loadingText}>Searching cinematic catalogue...</Text>
+                </View>
             ) : (
-                <>
-                    <View
-                        style={[
-                            styles.emptyIconCircle,
-                            {
-                                backgroundColor: isDarkMode
-                                    ? 'rgba(255, 48, 48, 0.12)'
-                                    : 'rgba(255, 48, 48, 0.08)',
-                                borderColor: isDarkMode
-                                    ? 'rgba(255, 48, 48, 0.25)'
-                                    : 'rgba(255, 48, 48, 0.15)',
-                            },
-                        ]}
-                    >
-                        <Film size={isTV ? 64 : 44} color="#FF3030" strokeWidth={1.8} />
+                <View style={styles.emptyContent}>
+                    <View style={styles.emptyIconCircle}>
+                        <Sparkles size={36} color="#FF2442" />
                     </View>
-                    <Text
-                        style={[
-                            styles.emptyTitle,
-                            { color: isDarkMode ? '#FFFFFF' : '#111827' },
-                        ]}
-                    >
+                    <Text style={styles.emptyTitle}>
                         {searchQuery.length > 0
                             ? `No results found for "${searchQuery}"`
-                            : 'Discover Movies & Series'}
+                            : 'AI Cinematic Discovery'}
                     </Text>
                     <Text style={styles.emptySubtitle}>
-                        Search across millions of movies, TV shows, and trending titles.
+                        Search across millions of movies, TV shows, actors, or explore tags below.
                     </Text>
-                </>
+
+                    {/* Explore Quick Tags */}
+                    <View style={styles.tagsContainer}>
+                        {EXPLORE_TAGS.map((tag) => (
+                            <Pressable
+                                key={tag}
+                                onPress={() => handleSelectTag(tag)}
+                                style={styles.tagPill}
+                            >
+                                <Text style={styles.tagPillText}>{tag}</Text>
+                            </Pressable>
+                        ))}
+                    </View>
+                </View>
             )}
         </View>
     );
@@ -105,53 +136,49 @@ export const SearchScreen = () => {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+            <View style={styles.container}>
+                {/* Search Bar Header */}
                 <View
                     style={[
-                        styles.searchHeader,
-                        { paddingTop: Math.max(insets.top + 8, Platform.OS === 'ios' ? 56 : 38) },
-                        isTV && styles.searchHeaderTV,
+                        styles.headerContainer,
+                        { paddingTop: Math.max(insets.top + 10, Platform.OS === 'ios' ? 52 : 38) },
+                        isTV && { paddingLeft: TV_LEFT_OFFSET + 20 },
                     ]}
                 >
-                    <Searchbar
-                        ref={searchBarRef}
-                        placeholder="Search movies, TV shows, actors..."
-                        onChangeText={setSearchQuery}
-                        value={searchQuery}
-                        autoFocus={isTV}
-                        style={[
-                            styles.searchBar,
-                            {
-                                backgroundColor: theme.colors.glassBg,
-                                borderColor: isDarkMode
-                                    ? 'rgba(255, 255, 255, 0.12)'
-                                    : 'rgba(0, 0, 0, 0.1)',
-                            },
-                            isTV && styles.searchBarTV,
-                        ]}
-                        iconColor="#FF3030"
-                        placeholderTextColor={isDarkMode ? '#637381' : '#9CA3AF'}
-                        inputStyle={{
-                            color: isDarkMode ? '#FFFFFF' : '#111827',
-                            fontSize: isTV ? 22 : 16,
-                            height: isTV ? 68 : 50,
-                        }}
-                    />
+                    <View style={styles.searchBarWrapper}>
+                        <Search color="#98A2B3" size={18} style={styles.searchIcon} />
+                        <TextInput
+                            ref={searchInputRef}
+                            style={styles.searchInput}
+                            placeholder="Search titles, actors, genres..."
+                            placeholderTextColor="#667085"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            returnKeyType="search"
+                        />
+                        {Boolean(searchQuery) && (
+                            <Pressable onPress={handleClear} style={styles.clearBtn}>
+                                <X color="#98A2B3" size={16} />
+                            </Pressable>
+                        )}
+                    </View>
                 </View>
 
+                {/* Results Grid */}
                 <FlatList
-                    key={isTV ? 'tv-grid' : 'mobile-grid'}
                     data={results}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => <MovieCard item={item} isGrid={true} />}
+                    keyExtractor={(item) => `search-${item.id}`}
                     numColumns={numColumns}
-                    ListEmptyComponent={renderEmptyState}
+                    showsVerticalScrollIndicator={false}
                     contentContainerStyle={[
                         styles.listContent,
-                        isTV && styles.listContentTV,
-                        { paddingBottom: 150 + insets.bottom },
+                        { paddingBottom: 110 + insets.bottom },
+                        isTV && { paddingLeft: TV_LEFT_OFFSET + 20 },
                     ]}
-                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={renderEmptyState}
+                    renderItem={({ item }) => (
+                        <MovieCard item={item} isGrid={true} showMatch={true} />
+                    )}
                 />
             </View>
         </TouchableWithoutFeedback>
@@ -161,67 +188,100 @@ export const SearchScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#08090C',
     },
-    searchHeader: {
-        paddingHorizontal: 16,
-        paddingBottom: 16,
+    headerContainer: {
+        paddingHorizontal: 18,
+        paddingBottom: 14,
+        backgroundColor: '#08090C',
     },
-    searchHeaderTV: {
-        paddingTop: 36,
-        paddingLeft: 120,
-        paddingRight: 60,
-        paddingBottom: 24,
+    searchBarWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#12161F',
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        paddingHorizontal: 14,
+        paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     },
-    searchBar: {
-        borderRadius: 24,
-        borderWidth: 1.2,
-        height: 52,
-        elevation: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 10,
+    searchIcon: {
+        marginRight: 10,
     },
-    searchBarTV: {
-        height: 72,
-        borderRadius: 36,
-        borderWidth: 2,
+    searchInput: {
+        flex: 1,
+        color: '#FFFFFF',
+        fontSize: 14.5,
+        fontWeight: '500',
+    },
+    clearBtn: {
+        padding: 4,
     },
     listContent: {
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
+        paddingTop: 10,
         flexGrow: 1,
-    },
-    listContentTV: {
-        paddingLeft: 120,
-        paddingRight: 60,
     },
     emptyContainer: {
         flex: 1,
-        justifyContent: 'center',
+        paddingTop: 60,
         alignItems: 'center',
-        paddingHorizontal: 36,
-        marginTop: 100,
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+    },
+    loadingBox: {
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: '#98A2B3',
+        fontSize: 13,
+        marginTop: 12,
+    },
+    emptyContent: {
+        alignItems: 'center',
     },
     emptyIconCircle: {
-        width: isTV ? 110 : 88,
-        height: isTV ? 110 : 88,
-        borderRadius: isTV ? 55 : 44,
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.3)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
-        borderWidth: 1.5,
+        marginBottom: 16,
     },
     emptyTitle: {
-        fontSize: isTV ? 26 : 20,
+        color: '#FFFFFF',
+        fontSize: 18,
         fontWeight: '800',
         textAlign: 'center',
         marginBottom: 8,
     },
     emptySubtitle: {
-        fontSize: isTV ? 16 : 14,
-        color: '#8A99A8',
+        color: '#98A2B3',
+        fontSize: 13,
         textAlign: 'center',
-        lineHeight: 20,
-        maxWidth: 360,
+        lineHeight: 18,
+        marginBottom: 24,
+    },
+    tagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    tagPill: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 16,
+        backgroundColor: '#141821',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+    },
+    tagPillText: {
+        color: '#D0D5DD',
+        fontSize: 12,
+        fontWeight: '600',
     },
 });
