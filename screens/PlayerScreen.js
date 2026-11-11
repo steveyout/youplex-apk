@@ -511,7 +511,7 @@ export const PlayerScreen = ({ route, navigation }) => {
                                     </Text>
                                 </View>
 
-                                <View style={styles.portraitLoaderCenter}>
+                                <View style={[styles.portraitLoaderCenter, { paddingTop: (insets?.top || 14) / 2 }]}>
                                     <ActivityIndicator size="large" color="#FF2442" />
                                     <Text style={styles.portraitLoaderConnecting}>
                                         Connecting to {activeProviderLabel}...
@@ -839,12 +839,10 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     portraitLoaderBox: {
-        width: '100%',
-        height: '100%',
+        ...StyleSheet.absoluteFillObject,
         backgroundColor: '#0F1217',
         justifyContent: 'center',
         alignItems: 'center',
-        position: 'relative',
         overflow: 'hidden',
     },
     portraitLoaderTopBar: {
@@ -874,7 +872,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     portraitLoaderCenter: {
+        ...StyleSheet.absoluteFillObject,
         width: '100%',
+        height: '100%',
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 24,

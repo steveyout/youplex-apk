@@ -59,7 +59,7 @@ jobs:
           fi
 
       - name: 📦 Install Dependencies
-        run: npm ci --engine-strict false
+        run: npm ci --engine-strict false || npm install --engine-strict false
 
       - name: 🚀 Setup Expo & EAS
         uses: expo/expo-github-action@v8
