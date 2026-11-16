@@ -220,6 +220,28 @@ function patchGenericBuildGradle(filePath) {
   }
 }
 
+function makeHermescExecutable(dir) {
+  if (!fs.existsSync(dir)) return;
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        makeHermescExecutable(fullPath);
+      } else if (entry.isFile() && (entry.name === 'hermesc' || entry.name === 'hermesc.exe')) {
+        try {
+          fs.chmodSync(fullPath, 0o755);
+          console.log('Successfully marked executable:', fullPath);
+        } catch (e) {
+          // ignore error on windows or restricted systems
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore permissions or read errors
+  }
+}
+
 function findAndPatch(dir) {
   if (!fs.existsSync(dir)) return;
   try {
@@ -247,4 +269,5 @@ function findAndPatch(dir) {
 console.log('Running patch-expo-constants and patch-expo-modules-core...');
 const rootDir = path.resolve(__dirname, '..');
 findAndPatch(path.join(rootDir, 'node_modules'));
+makeHermescExecutable(path.join(rootDir, 'node_modules'));
 console.log('Finished patching.');

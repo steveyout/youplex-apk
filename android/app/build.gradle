@@ -185,3 +185,31 @@ dependencies {
 }
 
 apply plugin: 'com.google.gms.google-services'
+
+// Ensure hermesc and other build binaries have executable permissions
+def makeHermescExecutable = {
+    try {
+        fileTree(dir: "$rootDir/..", include: "**/hermesc*").each { File f ->
+            if (f.isFile() && !f.name.endsWith(".bat") && !f.name.endsWith(".cmd")) {
+                f.setExecutable(true, false)
+            }
+        }
+    } catch (Throwable ignored) {}
+    try {
+        ["sh", "-c", "find $rootDir/.. -name 'hermesc*' -type f -exec chmod +x {} + 2>/dev/null || true"].execute().waitFor()
+    } catch (Throwable ignored) {}
+}
+
+makeHermescExecutable()
+
+gradle.taskGraph.whenReady {
+    makeHermescExecutable()
+}
+
+tasks.configureEach { task ->
+    if (task.name.toLowerCase().contains("bundle") || task.name.toLowerCase().contains("hermes") || task.name.toLowerCase().contains("release")) {
+        task.doFirst {
+            makeHermescExecutable()
+        }
+    }
+}
