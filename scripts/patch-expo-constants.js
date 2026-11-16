@@ -155,6 +155,44 @@ def stripBinary = PrebuiltNativeLibs.findLlvmStrip(ndkDir)`;
   }
 }
 
+function patchGenericBuildGradle(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    let content = fs.readFileSync(filePath, 'utf8');
+    let modified = false;
+
+    // Guard duplicate kotlin plugin application
+    if (content.includes("apply plugin: 'kotlin-android'") || content.includes('apply plugin: "kotlin-android"')) {
+      const kotlinGuard = 'if (!project.plugins.hasPlugin("org.jetbrains.kotlin.android") && !project.plugins.hasPlugin("kotlin-android") && project.extensions.findByName("kotlin") == null) { apply plugin: "kotlin-android" }';
+      if (!content.includes('project.extensions.findByName("kotlin") == null')) {
+        content = content.replace(/apply plugin:\s*['"]kotlin-android['"]/g, kotlinGuard);
+        modified = true;
+      }
+    }
+
+    // Default compileSdkVersion if missing
+    if (content.includes("getExtOrIntegerDefault('compileSdkVersion')")) {
+      content = content.replace(/getExtOrIntegerDefault\('compileSdkVersion'\)/g, "(rootProject.ext.has('compileSdkVersion') ? rootProject.ext.get('compileSdkVersion') : 37)");
+      modified = true;
+    }
+    if (content.includes("getExtOrIntegerDefault('targetSdkVersion')")) {
+      content = content.replace(/getExtOrIntegerDefault\('targetSdkVersion'\)/g, "(rootProject.ext.has('targetSdkVersion') ? rootProject.ext.get('targetSdkVersion') : 36)");
+      modified = true;
+    }
+    if (content.includes("getReactNativeWebViewMinSdkVersion()")) {
+      content = content.replace(/getReactNativeWebViewMinSdkVersion\(\)/g, "(rootProject.ext.has('minSdkVersion') ? rootProject.ext.get('minSdkVersion') : 24)");
+      modified = true;
+    }
+
+    if (modified) {
+      fs.writeFileSync(filePath, content, 'utf8');
+      console.log('Successfully patched build.gradle:', filePath);
+    }
+  } catch (err) {
+    console.warn('Failed to patch build.gradle:', filePath, err.message);
+  }
+}
+
 function findAndPatch(dir) {
   if (!fs.existsSync(dir)) return;
   try {
@@ -166,9 +204,10 @@ function findAndPatch(dir) {
           patchFile(path.join(fullPath, 'get-app-config-android.gradle'));
         } else if (entry.name === 'expo-modules-core' && fs.existsSync(path.join(fullPath, 'android/build.gradle'))) {
           patchExpoModulesCore(path.join(fullPath, 'android/build.gradle'));
-        } else {
-          findAndPatch(fullPath);
         }
+        findAndPatch(fullPath);
+      } else if (entry.isFile() && entry.name === 'build.gradle') {
+        patchGenericBuildGradle(fullPath);
       }
     }
   } catch (err) {
