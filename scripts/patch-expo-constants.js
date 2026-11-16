@@ -170,17 +170,17 @@ function patchGenericBuildGradle(filePath) {
       }
     }
 
-    // Default compileSdkVersion if missing
-    if (content.includes("getExtOrIntegerDefault('compileSdkVersion')")) {
-      content = content.replace(/getExtOrIntegerDefault\('compileSdkVersion'\)/g, "(rootProject.ext.has('compileSdkVersion') ? rootProject.ext.get('compileSdkVersion') : 37)");
+    // Fix if corrupt substitution previously occurred
+    if (content.includes("def (rootProject.ext.has('minSdkVersion')")) {
+      content = content.replace("def (rootProject.ext.has('minSdkVersion') ? rootProject.ext.get('minSdkVersion') : 24) {", "def getReactNativeWebViewMinSdkVersion() {");
       modified = true;
     }
-    if (content.includes("getExtOrIntegerDefault('targetSdkVersion')")) {
-      content = content.replace(/getExtOrIntegerDefault\('targetSdkVersion'\)/g, "(rootProject.ext.has('targetSdkVersion') ? rootProject.ext.get('targetSdkVersion') : 36)");
+    if (content.includes("compileSdkVersion (rootProject.ext.has('compileSdkVersion')")) {
+      content = content.replace("compileSdkVersion (rootProject.ext.has('compileSdkVersion') ? rootProject.ext.get('compileSdkVersion') : 37)", "compileSdkVersion getExtOrIntegerDefault('compileSdkVersion')");
       modified = true;
     }
-    if (content.includes("getReactNativeWebViewMinSdkVersion()")) {
-      content = content.replace(/getReactNativeWebViewMinSdkVersion\(\)/g, "(rootProject.ext.has('minSdkVersion') ? rootProject.ext.get('minSdkVersion') : 24)");
+    if (content.includes("targetSdkVersion (rootProject.ext.has('targetSdkVersion')")) {
+      content = content.replace("targetSdkVersion (rootProject.ext.has('targetSdkVersion') ? rootProject.ext.get('targetSdkVersion') : 36)", "targetSdkVersion getExtOrIntegerDefault('targetSdkVersion')");
       modified = true;
     }
 
