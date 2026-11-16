@@ -124,13 +124,30 @@ function patchExpoModulesCore(filePath) {
   try {
     if (fs.existsSync(filePath)) {
       let content = fs.readFileSync(filePath, 'utf8');
-      if (content.includes('android.ndkDirectory')) {
+      const safeReplacement = `File ndkDir = null
+try {
+  if (android.hasProperty("ndkDirectory") && android.ndkDirectory != null) {
+    ndkDir = android.ndkDirectory as File
+  } else if (android.hasProperty("ndkPath") && android.ndkPath != null) {
+    ndkDir = file(android.ndkPath)
+  }
+} catch (Throwable ignored) {}
+def stripBinary = PrebuiltNativeLibs.findLlvmStrip(ndkDir)`;
+
+      if (content.includes('def stripBinary = PrebuiltNativeLibs.findLlvmStrip(android.ndkDirectory)')) {
         content = content.replace(
           'def stripBinary = PrebuiltNativeLibs.findLlvmStrip(android.ndkDirectory)',
-          'def ndkDir = android.hasProperty("ndkDirectory") ? android.ndkDirectory : (android.hasProperty("ndkPath") ? file(android.ndkPath) : null)\ndef stripBinary = PrebuiltNativeLibs.findLlvmStrip(ndkDir)'
+          safeReplacement
         );
         fs.writeFileSync(filePath, content, 'utf8');
-        console.log('Successfully patched expo-modules-core:', filePath);
+        console.log('Successfully patched expo-modules-core (original):', filePath);
+      } else if (content.includes('def ndkDir = android.hasProperty("ndkDirectory")')) {
+        content = content.replace(
+          /def ndkDir = android\.hasProperty\("ndkDirectory"\)[^\n]*\n\s*def stripBinary = PrebuiltNativeLibs\.findLlvmStrip\(ndkDir\)/,
+          safeReplacement
+        );
+        fs.writeFileSync(filePath, content, 'utf8');
+        console.log('Successfully patched expo-modules-core (updated):', filePath);
       }
     }
   } catch (err) {
