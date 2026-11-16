@@ -113,10 +113,28 @@ function patchFile(filePath) {
   try {
     if (fs.existsSync(filePath)) {
       fs.writeFileSync(filePath, patchedContent, 'utf8');
-      console.log('Successfully patched:', filePath);
+      console.log('Successfully patched expo-constants:', filePath);
     }
   } catch (err) {
-    console.warn('Failed to patch:', filePath, err.message);
+    console.warn('Failed to patch expo-constants:', filePath, err.message);
+  }
+}
+
+function patchExpoModulesCore(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      let content = fs.readFileSync(filePath, 'utf8');
+      if (content.includes('android.ndkDirectory')) {
+        content = content.replace(
+          'def stripBinary = PrebuiltNativeLibs.findLlvmStrip(android.ndkDirectory)',
+          'def ndkDir = android.hasProperty("ndkDirectory") ? android.ndkDirectory : (android.hasProperty("ndkPath") ? file(android.ndkPath) : null)\ndef stripBinary = PrebuiltNativeLibs.findLlvmStrip(ndkDir)'
+        );
+        fs.writeFileSync(filePath, content, 'utf8');
+        console.log('Successfully patched expo-modules-core:', filePath);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to patch expo-modules-core:', filePath, err.message);
   }
 }
 
@@ -129,6 +147,8 @@ function findAndPatch(dir) {
       if (entry.isDirectory()) {
         if (entry.name === 'scripts' && fs.existsSync(path.join(fullPath, 'get-app-config-android.gradle'))) {
           patchFile(path.join(fullPath, 'get-app-config-android.gradle'));
+        } else if (entry.name === 'expo-modules-core' && fs.existsSync(path.join(fullPath, 'android/build.gradle'))) {
+          patchExpoModulesCore(path.join(fullPath, 'android/build.gradle'));
         } else {
           findAndPatch(fullPath);
         }
@@ -139,7 +159,7 @@ function findAndPatch(dir) {
   }
 }
 
-console.log('Running patch-expo-constants...');
+console.log('Running patch-expo-constants and patch-expo-modules-core...');
 const rootDir = path.resolve(__dirname, '..');
 findAndPatch(path.join(rootDir, 'node_modules'));
-console.log('Finished patch-expo-constants.');
+console.log('Finished patching.');
