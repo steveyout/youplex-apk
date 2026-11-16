@@ -155,6 +155,33 @@ def stripBinary = PrebuiltNativeLibs.findLlvmStrip(ndkDir)`;
   }
 }
 
+function patchAsyncStorage(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    let content = fs.readFileSync(filePath, 'utf8');
+    let modified = false;
+
+    if (content.includes("srcDirs += 'src/javaPackage/java'") && !content.includes("exclude '**/next/**'")) {
+      content = content.replace(
+        "srcDirs += 'src/javaPackage/java'",
+        "srcDirs += 'src/javaPackage/java'\n                exclude '**/next/**'"
+      );
+      content = content.replace(
+        "sourceSets.main {",
+        "sourceSets.main {\n        kotlin {\n            if (!useNextStorage) {\n                exclude '**/next/**'\n            }\n        }"
+      );
+      modified = true;
+    }
+
+    if (modified) {
+      fs.writeFileSync(filePath, content, 'utf8');
+      console.log('Successfully patched async-storage:', filePath);
+    }
+  } catch (err) {
+    console.warn('Failed to patch async-storage:', filePath, err.message);
+  }
+}
+
 function patchGenericBuildGradle(filePath) {
   try {
     if (!fs.existsSync(filePath)) return;
@@ -204,6 +231,8 @@ function findAndPatch(dir) {
           patchFile(path.join(fullPath, 'get-app-config-android.gradle'));
         } else if (entry.name === 'expo-modules-core' && fs.existsSync(path.join(fullPath, 'android/build.gradle'))) {
           patchExpoModulesCore(path.join(fullPath, 'android/build.gradle'));
+        } else if (entry.name === 'async-storage' && fs.existsSync(path.join(fullPath, 'android/build.gradle'))) {
+          patchAsyncStorage(path.join(fullPath, 'android/build.gradle'));
         }
         findAndPatch(fullPath);
       } else if (entry.isFile() && entry.name === 'build.gradle') {
