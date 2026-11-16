@@ -207,22 +207,6 @@ jobs:
             📥 <a href="https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk">Direct Download APK</a>
             🌐 <a href="https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}">View Release on GitHub</a>
 
-      - name: 🚨 Telegram Notification (Failure)
-        if: failure()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          format: html
-          message: |
-            ❌ <b>Youplex Build #${{ github.run_number }} FAILED!</b>
-            ━━━━━━━━━━━━━━━━━━━━
-            🌿 <b>Branch:</b> <code>${{ github.ref_name }}</code>
-            👤 <b>Triggered By:</b> @${{ github.actor }}
-            📝 <b>Commit:</b> <i>${{ github.event.head_commit.message || 'Manual build dispatch' }}</i>
-            ━━━━━━━━━━━━━━━━━━━━
-            🔍 <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Build Error Logs</a>
-
       - name: 💬 Discord Notification (Success)
         if: success()
         uses: sarisia/actions-status-discord@v1
@@ -242,21 +226,3 @@ jobs:
             
             📥 [Direct Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk) • [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }})
           color: ${{ github.ref_name == 'dev' && '0x3B82F6' || '0xE50914' }}
-
-      - name: 🚨 Discord Notification (Failure)
-        if: failure()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          status: ${{ job.status }}
-          title: "❌ Youplex Build #${{ github.run_number }} Failed"
-          content: "@here ⚠️ Youplex Build #${{ github.run_number }} failed on branch `${{ github.ref_name }}`!"
-          description: |
-            **The automated build failed during execution.**
-            
-            🌿 **Branch:** `${{ github.ref_name }}`
-            👤 **Triggered By:** @${{ github.actor }}
-            📝 **Commit:** `${{ github.event.head_commit.message || 'Manual build dispatch' }}`
-            
-            🔍 [Inspect Failure Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          color: 0xDC2626

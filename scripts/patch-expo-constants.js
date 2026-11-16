@@ -220,6 +220,49 @@ function patchGenericBuildGradle(filePath) {
   }
 }
 
+function syncHermesc(rootDir) {
+  try {
+    let hermescSrc = null;
+    try {
+      const hcPackage = require.resolve('hermes-compiler/package.json', { paths: [rootDir] });
+      const candidate = path.join(path.dirname(hcPackage), 'hermesc');
+      if (fs.existsSync(candidate)) hermescSrc = candidate;
+    } catch (e) {}
+
+    if (!hermescSrc) {
+      const candidate = path.join(rootDir, 'node_modules', 'hermes-compiler', 'hermesc');
+      if (fs.existsSync(candidate)) hermescSrc = candidate;
+    }
+
+    if (hermescSrc) {
+      console.log('Found source hermesc at:', hermescSrc);
+      const searchForReactNativeSdks = (dir) => {
+        if (!fs.existsSync(dir)) return;
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+              if (entry.name === 'react-native') {
+                const sdksDir = path.join(fullPath, 'sdks');
+                if (fs.existsSync(sdksDir)) {
+                  const targetHermesc = path.join(sdksDir, 'hermesc');
+                  fs.cpSync(hermescSrc, targetHermesc, { recursive: true });
+                  console.log('Copied hermesc to:', targetHermesc);
+                }
+              }
+              searchForReactNativeSdks(fullPath);
+            }
+          }
+        } catch (e) {}
+      };
+      searchForReactNativeSdks(path.join(rootDir, 'node_modules'));
+    }
+  } catch (err) {
+    console.warn('Failed to sync hermesc:', err.message);
+  }
+}
+
 function makeHermescExecutable(dir) {
   if (!fs.existsSync(dir)) return;
   try {
@@ -269,5 +312,6 @@ function findAndPatch(dir) {
 console.log('Running patch-expo-constants and patch-expo-modules-core...');
 const rootDir = path.resolve(__dirname, '..');
 findAndPatch(path.join(rootDir, 'node_modules'));
+syncHermesc(rootDir);
 makeHermescExecutable(path.join(rootDir, 'node_modules'));
 console.log('Finished patching.');
