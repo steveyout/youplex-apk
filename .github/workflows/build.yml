@@ -65,7 +65,9 @@ jobs:
           fi
 
       - name: 📦 Install Dependencies
-        run: npm ci --engine-strict false || npm install --engine-strict false --ignore-scripts
+        run: |
+          npm ci --engine-strict false || npm install --engine-strict false --ignore-scripts
+          node scripts/patch-expo-constants.js
 
       - name: 🚀 Setup Expo & EAS
         uses: expo/expo-github-action@v8
@@ -98,6 +100,7 @@ jobs:
           # 3. Finalize Android Setup
           mkdir -p android/app
           cp google-services.json android/app/google-services.json
+          node scripts/patch-expo-constants.js
           
           # 4. Build Local APK
           npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
