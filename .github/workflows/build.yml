@@ -1,5 +1,4 @@
-name: 🎬 Youplex Continuous APK Build
-
+name: Continuous APK Build
 on:
   push:
     branches:
@@ -7,32 +6,26 @@ on:
       - dev
   workflow_dispatch:
 
-concurrency:
-  group: apk-build-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: 🚀 Build APK
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
     steps:
       - name: 🏗 Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: ☕ Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
       - name: ⚙️ Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: 💎 Cache Gradle
@@ -46,26 +39,23 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: 🔑 Setup Google Services
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" > google-services.json
-          else
-            echo "Warning: GOOGLE_SERVICES_JSON secret is missing! Using empty config."
-            echo "{}" > google-services.json
-          fi
+          echo "${{ secrets.GOOGLE_SERVICES_BASE64 }}" | base64 --decode > ./google-services.json
 
       - name: 🔢 Auto-Version app.json
         run: |
-          jq '.expo.version = "1.0.${{ github.run_number }}" | .expo.android.versionCode = ${{ github.run_number }}' app.json > app.json.tmp && mv app.json.tmp app.json
+          jq '.expo.android.versionCode = ${{ github.run_number }} | .expo.version = "1.0.${{ github.run_number }}"' app.json > app.json.tmp && mv app.json.tmp app.json
+          echo "Build number set to: ${{ github.run_number }}"
 
       - name: 🔄 Sync and Build @p-stream/providers
+        continue-on-error: true
         run: |
-          if [ -d "submodules/providers" ]; then
-            cd submodules/providers
-            npm install --ignore-scripts
-            npm run build
+          npm install -g pnpm
+          git clone --depth=1 https://github.com/steveyout/providers.git /tmp/providers-repo || true
+          if [ -d "/tmp/providers-repo" ]; then
+            cd /tmp/providers-repo
+            pnpm install --frozen-lockfile=false || true
+            pnpm run build || true
             if [ -d "lib" ]; then
               echo "Successfully built latest @p-stream/providers from GitHub"
               mkdir -p $GITHUB_WORKSPACE/packages/@p-stream/providers
@@ -115,13 +105,12 @@ jobs:
           find . -name "hermesc*" -type f -exec chmod +x {} + 2>/dev/null || true
           chmod +x android/gradlew 2>/dev/null || true
           
-          # 4. Build Universal APK (auto-detects Android TV vs Phone with leanback & mobile support)
+          # 4. Build Local APK
           npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
           
-          # 5. Prepare artifacts for both Phone and TV labels
-          cp ./youplex-latest.apk ./youplex-phone.apk
-          cp ./youplex-latest.apk ./youplex-tv.apk
+          # 5. Prepare artifacts for both builds
           if [ "${{ github.ref_name }}" == "dev" ]; then
+            cp ./youplex-latest.apk ./youplex-dev-latest.apk
             cp ./youplex-latest.apk ./youplex-dev-v${{ github.run_number }}.apk
           else
             cp ./youplex-latest.apk ./youplex-v${{ github.run_number }}.apk
@@ -145,16 +134,13 @@ jobs:
             > ${{ github.event.head_commit.message || 'Manual build dispatch' }}
             
             ### 📥 Download Options
-            - 📱 **Phone / Universal APK:** [Download youplex-phone.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-phone.apk)
-            - 📺 **Android TV APK:** [Download youplex-tv.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-tv.apk)
-            - 📦 **Direct Download:** [Download youplex-latest.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk)
+            - [Download youplex-latest.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk)
+            ${{ github.ref_name == 'dev' && format('- [Download youplex-dev-latest.apk](https://github.com/{0}/releases/download/v{1}-dev/youplex-dev-latest.apk)', github.repository, github.run_number) || '' }}
           prerelease: ${{ github.ref_name == 'dev' }}
           make_latest: ${{ github.ref_name == 'main' }}
           files: |
             ./youplex-latest.apk
-            ./youplex-phone.apk
-            ./youplex-tv.apk
-            ${{ github.ref_name == 'dev' && './youplex-dev-v*.apk' || './youplex-v*.apk' }}
+            ${{ github.ref_name == 'dev' && './youplex-dev-latest.apk' || format('./youplex-v{0}.apk', github.run_number) }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -218,8 +204,7 @@ jobs:
             👤 <b>Author:</b> @${{ github.actor }}
             📝 <b>Commit:</b> <i>${{ github.event.head_commit.message || 'Manual build dispatch' }}</i>
             ━━━━━━━━━━━━━━━━━━━━
-            📱 <a href="https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-phone.apk">Download Phone APK</a>
-            📺 <a href="https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-tv.apk">Download Android TV APK</a>
+            📥 <a href="https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk">Direct Download APK</a>
             🌐 <a href="https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}">View Release on GitHub</a>
 
       - name: 💬 Discord Notification (Success)
@@ -239,5 +224,5 @@ jobs:
             👤 **Author:** @${{ github.actor }}
             📝 **Commit:** `${{ github.event.head_commit.message || 'Manual build dispatch' }}`
             
-            📥 [Phone APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-phone.apk) • [Android TV APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-tv.apk) • [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }})
+            📥 [Direct Download APK](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk) • [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }})
           color: ${{ github.ref_name == 'dev' && '0x3B82F6' || '0xE50914' }}
