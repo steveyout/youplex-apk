@@ -15,6 +15,16 @@
         "credentialsSource": "remote"
       }
     },
+    "preview-tv": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_TARGET_TV": "true"
+      }
+    },
     "production": {
       "autoIncrement": true
     }
