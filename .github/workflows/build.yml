@@ -87,7 +87,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           cache: true
 
-      - name: 🛠 Prebuild and Build APKs (Phone & Android TV)
+      - name: 🛠 Prebuild and Build APK
         env:
           EXPO_PUBLIC_APP_TITLE: ${{ secrets.APP_TITLE }}
           EXPO_PUBLIC_TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
@@ -115,22 +115,16 @@ jobs:
           find . -name "hermesc*" -type f -exec chmod +x {} + 2>/dev/null || true
           chmod +x android/gradlew 2>/dev/null || true
           
-          # 4. Build Phone / Universal APK
-          echo "Building Phone APK..."
-          npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-phone.apk
-          cp ./youplex-phone.apk ./youplex-latest.apk
+          # 4. Build Universal APK (auto-detects Android TV vs Phone with leanback & mobile support)
+          npx eas-cli build --platform android --profile preview --local --non-interactive --output=./youplex-latest.apk
           
-          # 5. Build Dedicated Android TV APK (optimized with fixed landscape TV mode & Leanback flags)
-          echo "Building Dedicated Android TV APK..."
-          EXPO_PUBLIC_TARGET_TV=true npx eas-cli build --platform android --profile preview-tv --local --non-interactive --output=./youplex-tv.apk
-          
-          # 6. Versioned naming for releases
+          # 5. Prepare artifacts for both Phone and TV labels
+          cp ./youplex-latest.apk ./youplex-phone.apk
+          cp ./youplex-latest.apk ./youplex-tv.apk
           if [ "${{ github.ref_name }}" == "dev" ]; then
-            cp ./youplex-phone.apk ./youplex-dev-phone-v${{ github.run_number }}.apk
-            cp ./youplex-tv.apk ./youplex-dev-tv-v${{ github.run_number }}.apk
+            cp ./youplex-latest.apk ./youplex-dev-v${{ github.run_number }}.apk
           else
-            cp ./youplex-phone.apk ./youplex-phone-v${{ github.run_number }}.apk
-            cp ./youplex-tv.apk ./youplex-tv-v${{ github.run_number }}.apk
+            cp ./youplex-latest.apk ./youplex-v${{ github.run_number }}.apk
           fi
 
       - name: 🚢 Upload to Release
@@ -151,17 +145,16 @@ jobs:
             > ${{ github.event.head_commit.message || 'Manual build dispatch' }}
             
             ### 📥 Download Options
-            - 📱 **Phone / Mobile APK:** [Download youplex-phone.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-phone.apk)
-            - 📺 **Dedicated Android TV APK:** [Download youplex-tv.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-tv.apk)
-            - 📦 **Standard Package:** [Download youplex-latest.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk)
+            - 📱 **Phone / Universal APK:** [Download youplex-phone.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-phone.apk)
+            - 📺 **Android TV APK:** [Download youplex-tv.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-tv.apk)
+            - 📦 **Direct Download:** [Download youplex-latest.apk](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}${{ github.ref_name == 'dev' && '-dev' || '' }}/youplex-latest.apk)
           prerelease: ${{ github.ref_name == 'dev' }}
           make_latest: ${{ github.ref_name == 'main' }}
           files: |
             ./youplex-latest.apk
             ./youplex-phone.apk
             ./youplex-tv.apk
-            ${{ github.ref_name == 'dev' && './youplex-dev-phone-v*.apk' || './youplex-phone-v*.apk' }}
-            ${{ github.ref_name == 'dev' && './youplex-dev-tv-v*.apk' || './youplex-tv-v*.apk' }}
+            ${{ github.ref_name == 'dev' && './youplex-dev-v*.apk' || './youplex-v*.apk' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
