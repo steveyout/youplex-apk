@@ -102,6 +102,15 @@ export const TopBar = () => {
 };
 
 const styles = StyleSheet.create({
+    topBarItemFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 1.5,
+        shadowColor: '#FF2442',
+        shadowOpacity: 0.8,
+        shadowRadius: 8,
+        elevation: 6,
+        transform: [{ scale: 1.08 }],
+    },
     stickyWrapper: {
         position: 'absolute',
         top: 0,

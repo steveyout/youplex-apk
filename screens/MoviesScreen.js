@@ -303,6 +303,21 @@ export const MoviesScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    tvBtnFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 2,
+        shadowColor: '#FF2442',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 12,
+        elevation: 10,
+        transform: [{ scale: 1.04 }],
+    },
+    genreChipFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 1.8,
+        transform: [{ scale: 1.08 }],
+    },
     container: {
         flex: 1,
     },

@@ -157,7 +157,7 @@ export const SearchScreen = () => {
                             returnKeyType="search"
                         />
                         {Boolean(searchQuery) && (
-                            <Pressable onPress={handleClear} style={styles.clearBtn}>
+                            <Pressable focusable={true} onPress={handleClear} style={({ focused }) => [styles.clearBtn, focused && styles.btnFocused]}>
                                 <X color="#98A2B3" size={16} />
                             </Pressable>
                         )}
@@ -186,6 +186,16 @@ export const SearchScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    tagPillFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 1.5,
+        backgroundColor: 'rgba(255, 36, 66, 0.2)',
+        transform: [{ scale: 1.05 }],
+    },
+    btnFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 1,
+    },
     container: {
         flex: 1,
         backgroundColor: '#08090C',

@@ -230,7 +230,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                                 episode: 1,
                             })
                         }
-                        style={styles.mainPlayBtn}
+                        focusable={true} hasTVPreferredFocus={true} style={({ focused }) => [styles.mainPlayBtn, focused && styles.tvBtnFocused]}
                     >
                         <LinearGradient
                             colors={['#FF3B56', '#FF1E3C', '#B3001E']}
@@ -251,7 +251,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                     <View style={styles.secondaryActionsRow}>
                         <Pressable
                             onPress={handleToggleBookmark}
-                            style={[styles.secondaryActionBtn, bookmarked && styles.bookmarkedActive]}
+                            focusable={true} style={({ focused }) => [styles.secondaryActionBtn, bookmarked && styles.bookmarkedActive, focused && styles.tvBtnFocused]}
                         >
                             {bookmarked ? (
                                 <Check color="#FF2442" size={18} />
@@ -423,6 +423,35 @@ export const MovieDetailScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
+    seasonPillFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 2,
+        shadowColor: '#FF2442',
+        shadowOpacity: 0.7,
+        shadowRadius: 8,
+        elevation: 6,
+        transform: [{ scale: 1.05 }],
+    },
+    episodeCardFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 2,
+        shadowColor: '#FF2442',
+        shadowOpacity: 0.7,
+        shadowRadius: 10,
+        elevation: 8,
+        transform: [{ scale: 1.03 }],
+    },
+    tvBtnFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 2,
+        shadowColor: '#FF2442',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 12,
+        elevation: 10,
+        transform: [{ scale: 1.04 }],
+    },
+
     container: {
         flex: 1,
         backgroundColor: '#08090C',

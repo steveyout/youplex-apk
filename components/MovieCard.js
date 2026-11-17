@@ -31,6 +31,7 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
 
     return (
         <Pressable
+            focusable={true}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             enablesNextFocusAppearance={true}
@@ -42,7 +43,7 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
                 {
                     width: rank ? cardWidth + 34 : cardWidth,
                     marginRight: isGrid ? (isTV ? 20 : 8) : 12,
-                    transform: [{ scale: isFocused ? 1.06 : 1.0 }],
+                    transform: [{ scale: isFocused ? 1.08 : 1.0 }],
                     zIndex: isFocused ? 10 : 1,
                 },
                 pressed && !isTV && { opacity: 0.8 },
@@ -83,7 +84,7 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
 
                         {/* Bottom Dark Fade */}
                         <LinearGradient
-                            colors={['transparent', 'rgba(8, 9, 12, 0.9)']}
+                            colors={['transparent', 'rgba(8, 9, 12, 0.95)']}
                             style={styles.cardGradient}
                         />
 
@@ -158,16 +159,17 @@ const styles = StyleSheet.create({
     imageContainer: {
         borderRadius: 16,
         overflow: 'hidden',
-        borderWidth: 1,
+        borderWidth: 1.5,
         position: 'relative',
     },
     focusedGlow: {
         borderColor: '#FF2442',
+        borderWidth: 2.5,
         shadowColor: '#FF2442',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-        elevation: 8,
+        shadowOpacity: 0.7,
+        shadowRadius: 14,
+        elevation: 12,
     },
     image: {
         width: '100%',
@@ -188,24 +190,24 @@ const styles = StyleSheet.create({
         paddingHorizontal: 6,
         paddingVertical: 3,
         borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 0.5,
+        borderColor: 'rgba(255, 255, 255, 0.12)',
     },
     ratingText: {
         color: '#FFC107',
-        fontSize: 10,
-        fontWeight: '800',
+        fontSize: 10.5,
+        fontWeight: '700',
     },
     qualityTag: {
         position: 'absolute',
         bottom: 8,
         right: 8,
         backgroundColor: 'rgba(255, 36, 66, 0.2)',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 36, 66, 0.4)',
-        paddingHorizontal: 6,
+        borderColor: '#FF2442',
+        borderWidth: 0.8,
+        borderRadius: 5,
+        paddingHorizontal: 5,
         paddingVertical: 2,
-        borderRadius: 6,
     },
     qualityText: {
         color: '#FF2442',
@@ -215,7 +217,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontWeight: '700',
-        marginTop: 7,
+        marginTop: 8,
         letterSpacing: 0.2,
     },
     metaRow: {
@@ -223,13 +225,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 2,
     },
-    yearText: {
-        color: '#98A2B3',
-        fontSize: 11,
-    },
     matchText: {
-        color: '#FF2442',
         fontSize: 11,
+        color: '#12B76A',
         fontWeight: '700',
+    },
+    yearText: {
+        fontSize: 11,
+        color: '#8A99A8',
+        fontWeight: '500',
     },
 });

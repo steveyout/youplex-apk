@@ -63,6 +63,8 @@ export const SideMenu = ({ state }) => {
         return (
             <Pressable
                 key={item.route}
+                hasTVPreferredFocus={item.route === 'Home'}
+                focusable={true}
                 onFocus={() => toggleMenu(true)}
                 onBlur={() => toggleMenu(false)}
                 onPress={() => navigation.navigate(item.route)}
@@ -120,7 +122,7 @@ export const SideMenu = ({ state }) => {
                     styles.container,
                     {
                         width: widthAnim,
-                        backgroundColor: 'rgba(8, 9, 12, 0.96)',
+                        backgroundColor: 'rgba(8, 9, 12, 0.98)',
                         borderRightColor: 'rgba(255, 255, 255, 0.08)',
                     },
                 ]}
@@ -128,7 +130,7 @@ export const SideMenu = ({ state }) => {
                 <View style={styles.topSection}>
                     <Image
                         source={require('../assets/logo.png')}
-                        style={{ width: 36, height: 36 }}
+                        style={{ width: 40, height: 40 }}
                         resizeMode="contain"
                     />
                 </View>
@@ -144,7 +146,7 @@ export const SideMenu = ({ state }) => {
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         zIndex: 998,
     },
     container: {
@@ -158,14 +160,14 @@ const styles = StyleSheet.create({
         paddingVertical: 28,
     },
     topSection: {
-        height: 60,
+        height: 64,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 20,
+        marginBottom: 24,
     },
     menuList: {
         flex: 1,
-        gap: 10,
+        gap: 12,
     },
     menuItem: {
         height: 52,
@@ -178,9 +180,14 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 36, 66, 0.12)',
     },
     menuItemFocused: {
-        backgroundColor: 'rgba(255, 36, 66, 0.22)',
+        backgroundColor: 'rgba(255, 36, 66, 0.28)',
         borderColor: '#FF2442',
-        borderWidth: 1.5,
+        borderWidth: 2,
+        shadowColor: '#FF2442',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 10,
+        elevation: 8,
     },
     itemInner: {
         flexDirection: 'row',
@@ -197,7 +204,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: -12,
         width: 4,
-        height: 18,
+        height: 20,
         borderRadius: 2,
         backgroundColor: '#FF2442',
     },

@@ -212,7 +212,7 @@ export const HomeScreen = () => {
                                                 item: heroMovie,
                                             })
                                         }
-                                        style={styles.heroPlayBtn}
+                                        focusable={true} hasTVPreferredFocus={true} style={({ focused }) => [styles.heroPlayBtn, focused && styles.btnFocusedGlow]}
                                     >
                                         <LinearGradient
                                             colors={['#FF3B56', '#FF1E3C', '#B3001E']}
@@ -228,7 +228,7 @@ export const HomeScreen = () => {
                                     {/* Watchlist Toggle */}
                                     <Pressable
                                         onPress={() => handleToggleHeroBookmark(heroMovie)}
-                                        style={styles.heroListBtn}
+                                        focusable={true} style={({ focused }) => [styles.heroListBtn, focused && styles.btnFocusedGlow]}
                                     >
                                         {heroBookmarked ? (
                                             <Check color="#FF2442" size={18} />
@@ -253,7 +253,7 @@ export const HomeScreen = () => {
                                                 type: 'movie',
                                             })
                                         }
-                                        style={styles.heroInfoBtn}
+                                        focusable={true} style={({ focused }) => [styles.heroInfoBtn, focused && styles.btnFocusedGlow]}
                                     >
                                         <ChevronRight color="#98A2B3" size={18} />
                                     </Pressable>
@@ -366,7 +366,7 @@ export const HomeScreen = () => {
                                                 position: item.position || 0,
                                             })
                                         }
-                                        style={styles.cwCard}
+                                        focusable={true} style={({ focused }) => [styles.cwCard, focused && styles.cwCardFocused]}
                                     >
                                         <View style={styles.cwImageContainer}>
                                             <Image
@@ -501,6 +501,28 @@ export const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    btnFocusedGlow: {
+        borderColor: '#FF2442',
+        borderWidth: 2,
+        shadowColor: '#FF2442',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 10,
+        elevation: 8,
+        transform: [{ scale: 1.05 }],
+    },
+    genrePillFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 1.8,
+        transform: [{ scale: 1.08 }],
+    },
+    cwCardFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 2,
+        borderRadius: 14,
+        transform: [{ scale: 1.05 }],
+    },
+
     mainContainer: {
         flex: 1,
         backgroundColor: '#08090C',

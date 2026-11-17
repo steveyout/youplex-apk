@@ -105,7 +105,7 @@ export const HistoryScreen = () => {
                 </View>
 
                 {history.length > 0 && (
-                    <Pressable onPress={handleClear} style={styles.clearBtnWrapper}>
+                    <Pressable focusable={true} onPress={handleClear} style={({ focused }) => [styles.clearBtnWrapper, focused && styles.btnFocused]}>
                         <Trash2 size={14} color="#FF2442" />
                         <Text style={styles.clearBtn}>Clear All</Text>
                     </Pressable>
@@ -142,6 +142,21 @@ export const HistoryScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    historyCardFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 2,
+        shadowColor: '#FF2442',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.7,
+        shadowRadius: 10,
+        elevation: 8,
+        transform: [{ scale: 1.02 }],
+    },
+    btnFocused: {
+        borderColor: '#FF2442',
+        borderWidth: 1.5,
+        backgroundColor: 'rgba(255, 36, 66, 0.2)',
+    },
     container: {
         flex: 1,
     },
