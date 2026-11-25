@@ -1,219 +1,230 @@
-import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Pressable, Animated, Dimensions, Image } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Pressable, Image } from 'react-native';
 import { Text } from 'react-native-paper';
+import { BlurView } from 'expo-blur';
 import { Home, Film, Tv, Search, Clock, Settings, Bookmark } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAppTheme } from '../theme/ThemeContext';
 import { isTV } from '../utils/device';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const COLLAPSED_WIDTH = 84;
-const EXPANDED_WIDTH = 260;
-
 export const SideMenu = ({ state }) => {
-    const { theme } = useAppTheme();
     const navigation = useNavigation();
-
-    // Animation Refs
-    const widthAnim = useRef(new Animated.Value(COLLAPSED_WIDTH)).current;
-    const overlayOpacity = useRef(new Animated.Value(0)).current;
-    const labelOpacity = useRef(new Animated.Value(0)).current;
-
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    const toggleMenu = (expanded) => {
-        setIsExpanded(expanded);
-        Animated.parallel([
-            Animated.spring(widthAnim, {
-                toValue: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
-                useNativeDriver: false,
-                friction: 8,
-                tension: 40,
-            }),
-            Animated.timing(overlayOpacity, {
-                toValue: expanded ? 1 : 0,
-                duration: 250,
-                useNativeDriver: true,
-            }),
-            Animated.timing(labelOpacity, {
-                toValue: expanded ? 1 : 0,
-                duration: 180,
-                delay: expanded ? 80 : 0,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    };
+    const [focusedRoute, setFocusedRoute] = useState(null);
 
     const menuItems = [
         { label: 'Home', icon: Home, route: 'Home' },
+        { label: 'Search', icon: Search, route: 'Search' },
         { label: 'Movies', icon: Film, route: 'Movies' },
         { label: 'TV Series', icon: Tv, route: 'Tv' },
         { label: 'Watchlist', icon: Bookmark, route: 'Bookmarks' },
         { label: 'History', icon: Clock, route: 'History' },
-        { label: 'Search', icon: Search, route: 'Search' },
         { label: 'Settings', icon: Settings, route: 'Settings' },
     ];
 
     const currentRoute = state?.routes?.[state.index]?.name;
-
-    const renderItem = (item) => {
-        const isActive = currentRoute === item.route;
-
-        return (
-            <Pressable
-                key={item.route}
-                hasTVPreferredFocus={item.route === 'Home'}
-                focusable={true}
-                onFocus={() => toggleMenu(true)}
-                onBlur={() => toggleMenu(false)}
-                onPress={() => navigation.navigate(item.route)}
-                style={({ focused }) => [
-                    styles.menuItem,
-                    isActive && styles.menuItemActive,
-                    focused && styles.menuItemFocused,
-                ]}
-            >
-                {({ focused }) => (
-                    <View style={styles.itemInner}>
-                        <View style={styles.iconContainer}>
-                            <item.icon
-                                size={24}
-                                color={focused || isActive ? '#FF2442' : 'rgba(255,255,255,0.65)'}
-                                strokeWidth={focused || isActive ? 2.5 : 1.8}
-                            />
-                            {isActive && <View style={styles.activePill} />}
-                        </View>
-
-                        <Animated.View style={[styles.labelWrapper, { opacity: labelOpacity }]}>
-                            <Text
-                                numberOfLines={1}
-                                style={[
-                                    styles.menuLabel,
-                                    { color: focused || isActive ? '#FFFFFF' : 'rgba(255,255,255,0.65)' },
-                                    (focused || isActive) && { fontWeight: '800' },
-                                ]}
-                            >
-                                {item.label}
-                            </Text>
-                        </Animated.View>
-                    </View>
-                )}
-            </Pressable>
-        );
+    const currentTab = state?.routes?.[state.index];
+    const getActiveRouteName = (route) => {
+        if (!route) return '';
+        if (!route.state) return route.name;
+        const routeState = route.state;
+        return routeState.routes[routeState.index].name;
     };
+    const activeRouteName = getActiveRouteName(currentTab);
 
-    if (!isTV) return null;
+    if (!isTV || activeRouteName === 'Player' || activeRouteName === 'MovieDetail') return null;
 
     return (
-        <>
-            {/* Backdrop Overlay */}
-            <Animated.View
-                pointerEvents="none"
-                style={[
-                    styles.overlay,
-                    { opacity: overlayOpacity },
-                ]}
-            />
-
-            {/* Side Blade Navigation */}
-            <Animated.View
-                style={[
-                    styles.container,
-                    {
-                        width: widthAnim,
-                        backgroundColor: 'rgba(8, 9, 12, 0.98)',
-                        borderRightColor: 'rgba(255, 255, 255, 0.08)',
-                    },
+        <View style={styles.railContainer} pointerEvents="box-none">
+            {/* Top Brand Glass Badge */}
+            <Pressable
+                focusable={true}
+                onFocus={() => setFocusedRoute('__brand__')}
+                onBlur={() => setFocusedRoute((prev) => (prev === '__brand__' ? null : prev))}
+                onPress={() => navigation.navigate('Home')}
+                style={({ focused }) => [
+                    styles.brandBadge,
+                    (focused || focusedRoute === '__brand__') && styles.brandBadgeFocused,
                 ]}
             >
-                <View style={styles.topSection}>
+                <BlurView intensity={45} tint="dark" style={styles.brandBlur} pointerEvents="none">
                     <Image
                         source={require('../assets/logo.png')}
-                        style={{ width: 40, height: 40 }}
+                        style={styles.brandLogo}
                         resizeMode="contain"
                     />
-                </View>
+                </BlurView>
+            </Pressable>
 
-                <View style={styles.menuList}>
-                    {menuItems.map(renderItem)}
-                </View>
-            </Animated.View>
-        </>
+            {/* 6 Circular Frosted-Glass Icon Buttons */}
+            <View style={styles.menuList}>
+                {menuItems.map((item) => {
+                    const isActive = currentRoute === item.route;
+                    const isItemFocused = focusedRoute === item.route;
+
+                    return (
+                        <Pressable
+                            key={item.route}
+                            focusable={true}
+                            onFocus={() => setFocusedRoute(item.route)}
+                            onBlur={() =>
+                                setFocusedRoute((prev) => (prev === item.route ? null : prev))
+                            }
+                            onPress={() => navigation.navigate(item.route)}
+                            style={styles.itemAnchor}
+                        >
+                            {({ focused }) => {
+                                const highlight = Boolean(focused || isItemFocused);
+                                return (
+                                    <>
+                                        <View
+                                            style={[
+                                                styles.circleBtn,
+                                                isActive && styles.circleBtnActive,
+                                                highlight && styles.circleBtnFocused,
+                                            ]}
+                                        >
+                                            <BlurView
+                                                intensity={38}
+                                                tint="dark"
+                                                style={styles.circleBlur}
+                                                pointerEvents="none"
+                                            >
+                                                <item.icon
+                                                    size={20}
+                                                    color={
+                                                        highlight || isActive
+                                                            ? '#FFFFFF'
+                                                            : 'rgba(255, 255, 255, 0.72)'
+                                                    }
+                                                    strokeWidth={highlight || isActive ? 2.4 : 1.8}
+                                                />
+                                            </BlurView>
+                                        </View>
+
+                                        {highlight && (
+                                            <View style={styles.tooltipPill} pointerEvents="none">
+                                                <BlurView
+                                                    intensity={60}
+                                                    tint="dark"
+                                                    style={styles.tooltipBlur}
+                                                    pointerEvents="none"
+                                                >
+                                                    <Text style={styles.tooltipText} numberOfLines={1}>
+                                                        {item.label}
+                                                    </Text>
+                                                </BlurView>
+                                            </View>
+                                        )}
+                                    </>
+                                );
+                            }}
+                        </Pressable>
+                    );
+                })}
+            </View>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    overlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        zIndex: 998,
-    },
-    container: {
+    railContainer: {
         position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: 0,
+        top: 24,
+        bottom: 24,
+        left: 20,
+        width: 52,
         zIndex: 999,
-        borderRightWidth: 1,
+        alignItems: 'center',
         justifyContent: 'flex-start',
-        paddingVertical: 28,
     },
-    topSection: {
-        height: 64,
+    brandBadge: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.45)',
+        backgroundColor: 'rgba(255, 36, 66, 0.18)',
+        marginBottom: 16,
+    },
+    brandBadgeFocused: {
+        borderColor: '#FFFFFF',
+        borderWidth: 2,
+        transform: [{ scale: 1.1 }],
+    },
+    brandBlur: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 24,
+    },
+    brandLogo: {
+        width: 28,
+        height: 28,
     },
     menuList: {
-        flex: 1,
-        gap: 12,
+        alignItems: 'center',
+        gap: 9,
     },
-    menuItem: {
-        height: 52,
+    itemAnchor: {
+        position: 'relative',
+        alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 16,
-        borderRadius: 14,
-        marginHorizontal: 10,
     },
-    menuItemActive: {
-        backgroundColor: 'rgba(255, 36, 66, 0.12)',
+    circleBtn: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        overflow: 'hidden',
+        backgroundColor: 'rgba(255, 255, 255, 0.10)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.18)',
     },
-    menuItemFocused: {
-        backgroundColor: 'rgba(255, 36, 66, 0.28)',
+    circleBtnActive: {
+        backgroundColor: 'rgba(255, 36, 66, 0.32)',
         borderColor: '#FF2442',
-        borderWidth: 2,
+        borderWidth: 1.5,
         shadowColor: '#FF2442',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.6,
-        shadowRadius: 10,
-        elevation: 8,
+        shadowOpacity: 0.55,
+        shadowRadius: 8,
+        elevation: 6,
     },
-    itemInner: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    circleBtnFocused: {
+        backgroundColor: '#FF2442',
+        borderColor: '#FFFFFF',
+        borderWidth: 2,
+        transform: [{ scale: 1.12 }],
+        shadowColor: '#FF2442',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.9,
+        shadowRadius: 12,
+        elevation: 10,
     },
-    iconContainer: {
-        width: 36,
-        height: 36,
+    circleBlur: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'relative',
     },
-    activePill: {
+    tooltipPill: {
         position: 'absolute',
-        left: -12,
-        width: 4,
-        height: 20,
-        borderRadius: 2,
-        backgroundColor: '#FF2442',
-    },
-    labelWrapper: {
-        marginLeft: 16,
+        left: 56,
+        minWidth: 108,
+        borderRadius: 14,
         overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.55)',
+        backgroundColor: 'rgba(15, 18, 25, 0.92)',
+        zIndex: 1000,
     },
-    menuLabel: {
-        fontSize: 16,
+    tooltipBlur: {
+        paddingHorizontal: 14,
+        paddingVertical: 7,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tooltipText: {
+        color: '#FFFFFF',
+        fontSize: 12.5,
+        fontWeight: '800',
         letterSpacing: 0.3,
     },
 });

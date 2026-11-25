@@ -38,15 +38,20 @@ export const HistoryScreen = () => {
         setHistory([]);
     };
 
-    const safeTopMargin = isTV ? 110 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
+    const safeTopMargin = isTV ? 28 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
 
     const renderItem = ({ item }) => {
         const isShow = item.type === 'tv' || item.season;
 
         return (
             <Pressable
+                focusable={true}
                 enablesNextFocusAppearance={true}
-                style={styles.card}
+                style={({ focused }) => [
+                    styles.card,
+                    isTV && { flex: 1, marginRight: 14 },
+                    focused && styles.historyCardFocused,
+                ]}
                 onPress={() =>
                     navigation.navigate('Player', {
                         id: item.id,
@@ -168,7 +173,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     headerTV: {
-        paddingLeft: 120,
+        paddingLeft: 96,
     },
     headerTitleRow: {
         flexDirection: 'row',
@@ -205,7 +210,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
     },
     listContentTV: {
-        paddingLeft: 120,
+        paddingLeft: 96,
     },
     card: {
         flexDirection: 'row',

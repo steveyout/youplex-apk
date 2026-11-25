@@ -27,7 +27,7 @@ export const BookmarksScreen = () => {
     const [bookmarks, setBookmarks] = useState([]);
     const [filter, setFilter] = useState('all');
 
-    const TV_LEFT_OFFSET = 100;
+    const TV_LEFT_OFFSET = 76;
 
     const loadData = async () => {
         const list = await getBookmarks();
@@ -57,7 +57,7 @@ export const BookmarksScreen = () => {
     });
 
     const numColumns = isTV ? 5 : 3;
-    const safeTopMargin = isTV ? 110 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
+    const safeTopMargin = isTV ? 28 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
 
     return (
         <View style={[styles.container, { backgroundColor: '#08090C' }]}>
@@ -93,10 +93,12 @@ export const BookmarksScreen = () => {
                         return (
                             <Pressable
                                 key={tab.key}
+                                focusable={true}
                                 onPress={() => setFilter(tab.key)}
-                                style={[
+                                style={({ focused }) => [
                                     styles.filterTab,
                                     isActive && styles.filterTabActive,
+                                    focused && styles.filterTabFocused,
                                 ]}
                             >
                                 <Text
@@ -147,7 +149,8 @@ export const BookmarksScreen = () => {
                             Save movies and shows you want to watch later by tapping "+ Watchlist" on any title.
                         </Text>
                         <Pressable
-                            style={styles.exploreBtn}
+                            focusable={true}
+                            style={({ focused }) => [styles.exploreBtn, focused && styles.btnFocused]}
                             onPress={() => navigation.navigate('Home')}
                         >
                             <Compass size={17} color="#FFFFFF" />
@@ -182,7 +185,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     headerTV: {
-        paddingLeft: 120,
+        paddingLeft: 96,
     },
     headerTitleRow: {
         flexDirection: 'row',
@@ -235,7 +238,7 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     filterRowTV: {
-        paddingLeft: 120,
+        paddingLeft: 96,
     },
     filterTab: {
         paddingHorizontal: 14,
@@ -262,7 +265,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     listContentTV: {
-        paddingLeft: 120,
+        paddingLeft: 96,
     },
     cardContainer: {
         position: 'relative',

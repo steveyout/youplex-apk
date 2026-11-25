@@ -142,7 +142,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                 contentContainerStyle={{ paddingBottom: 60 + insets.bottom }}
             >
                 {/* --- 1. HERO BACKDROP BANNER --- */}
-                <View style={styles.backdropContainer}>
+                <View style={[styles.backdropContainer, isTV && { height: height * 0.54 }]}>
                     <Image source={{ uri: backdropUri }} style={styles.backdropImage} />
 
                     {/* Multi-step gradient fade */}
@@ -155,23 +155,44 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                         ]}
                         style={styles.backdropGradient}
                     />
+                    {isTV && (
+                        <LinearGradient
+                            colors={['#08090C', 'rgba(8, 9, 12, 0.75)', 'transparent']}
+                            style={StyleSheet.absoluteFillObject}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 0.85, y: 0.5 }}
+                        />
+                    )}
 
                     {/* Floating Controls Header */}
                     <View
                         style={[
                             styles.topNavRow,
-                            { top: Math.max(insets.top + 8, 38) },
+                            { top: isTV ? 22 : Math.max(insets.top + 8, 38) },
+                            isTV && { left: 36, right: 36 },
                         ]}
                     >
-                        <Pressable onPress={() => navigation.goBack()} style={styles.navCircleBtn}>
+                        <Pressable
+                            focusable={true}
+                            onPress={() => navigation.goBack()}
+                            style={({ focused }) => [styles.navCircleBtn, focused && styles.tvBtnFocused]}
+                        >
                             <ChevronLeft color="#FFFFFF" size={22} />
                         </Pressable>
 
                         <View style={styles.topRightActions}>
-                            <Pressable onPress={handleShare} style={styles.navCircleBtn}>
+                            <Pressable
+                                focusable={true}
+                                onPress={handleShare}
+                                style={({ focused }) => [styles.navCircleBtn, focused && styles.tvBtnFocused]}
+                            >
                                 <Share2 color="#FFFFFF" size={18} />
                             </Pressable>
-                            <Pressable onPress={handleToggleBookmark} style={styles.navCircleBtn}>
+                            <Pressable
+                                focusable={true}
+                                onPress={handleToggleBookmark}
+                                style={({ focused }) => [styles.navCircleBtn, focused && styles.tvBtnFocused]}
+                            >
                                 {bookmarked ? (
                                     <Check color="#FF2442" size={20} />
                                 ) : (
@@ -182,7 +203,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                     </View>
 
                     {/* Hero Title & Primary Tag */}
-                    <View style={styles.heroInfoOverlay}>
+                    <View style={[styles.heroInfoOverlay, isTV && { paddingHorizontal: 36, maxWidth: 640 }]}>
                         <View style={styles.matchBadgeRow}>
                             <View style={styles.matchBadge}>
                                 <Flame color="#FF2442" size={13} />
@@ -218,7 +239,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                 </View>
 
                 {/* --- 2. ACTION BUTTONS --- */}
-                <View style={styles.actionsContainer}>
+                <View style={[styles.actionsContainer, isTV && styles.actionsContainerTV]}>
                     {/* Primary Watch Now Button */}
                     <Pressable
                         onPress={() =>
@@ -230,11 +251,17 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                                 episode: 1,
                             })
                         }
-                        focusable={true} hasTVPreferredFocus={true} style={({ focused }) => [styles.mainPlayBtn, focused && styles.tvBtnFocused]}
+                        focusable={true}
+                        hasTVPreferredFocus={true}
+                        style={({ focused }) => [
+                            styles.mainPlayBtn,
+                            isTV && styles.mainPlayBtnTV,
+                            focused && styles.tvBtnFocused,
+                        ]}
                     >
                         <LinearGradient
                             colors={['#FF3B56', '#FF1E3C', '#B3001E']}
-                            style={styles.mainPlayGradient}
+                            style={[styles.mainPlayGradient, isTV && { paddingHorizontal: 28, paddingVertical: 13 }]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                         >
@@ -248,10 +275,16 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                     </Pressable>
 
                     {/* Secondary Watchlist & Server Indicator */}
-                    <View style={styles.secondaryActionsRow}>
+                    <View style={[styles.secondaryActionsRow, isTV && { flex: 0 }]}>
                         <Pressable
                             onPress={handleToggleBookmark}
-                            focusable={true} style={({ focused }) => [styles.secondaryActionBtn, bookmarked && styles.bookmarkedActive, focused && styles.tvBtnFocused]}
+                            focusable={true}
+                            style={({ focused }) => [
+                                styles.secondaryActionBtn,
+                                isTV && { flex: 0, paddingHorizontal: 20, paddingVertical: 13 },
+                                bookmarked && styles.bookmarkedActive,
+                                focused && styles.tvBtnFocused,
+                            ]}
                         >
                             {bookmarked ? (
                                 <Check color="#FF2442" size={18} />
@@ -276,16 +309,16 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                 </View>
 
                 {/* --- 3. STORYLINE SYNOPSIS --- */}
-                <View style={styles.section}>
+                <View style={[styles.section, isTV && { paddingHorizontal: 36 }]}>
                     <Text style={styles.sectionHeader}>Storyline</Text>
                     <Text
-                        style={styles.overviewText}
+                        style={[styles.overviewText, isTV && { maxWidth: 720 }]}
                         numberOfLines={readMore ? undefined : 4}
                     >
                         {item.overview || 'No synopsis provided for this title.'}
                     </Text>
                     {item.overview && item.overview.length > 180 && (
-                        <Pressable onPress={() => setReadMore(!readMore)}>
+                        <Pressable focusable={true} onPress={() => setReadMore(!readMore)} style={({ focused }) => [focused && { opacity: 0.8 }]}>
                             <Text style={styles.readMoreBtn}>
                                 {readMore ? 'Show Less' : 'Read More'}
                             </Text>
@@ -295,7 +328,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
 
                 {/* --- 4. TV SEASONS & EPISODES (IF TV SHOW) --- */}
                 {type === 'tv' && (
-                    <View style={styles.section}>
+                    <View style={[styles.section, isTV && { paddingHorizontal: 36 }]}>
                         <Text style={styles.sectionHeader}>Episodes</Text>
 
                         {/* Season selector horizontal chips */}
@@ -310,10 +343,12 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                                     return (
                                         <Pressable
                                             key={s.id}
+                                            focusable={true}
                                             onPress={() => handleSelectSeason(s.season_number)}
-                                            style={[
+                                            style={({ focused }) => [
                                                 styles.seasonPill,
                                                 isSelected && styles.seasonPillActive,
+                                                focused && styles.seasonPillFocused,
                                             ]}
                                         >
                                             <Text
@@ -338,7 +373,8 @@ export const MovieDetailScreen = ({ navigation, route }) => {
                                 {episodes.map((ep) => (
                                     <Pressable
                                         key={ep.id}
-                                        style={styles.episodeCard}
+                                        focusable={true}
+                                        style={({ focused }) => [styles.episodeCard, focused && styles.episodeCardFocused]}
                                         onPress={() =>
                                             navigation.navigate('Player', {
                                                 id,
@@ -389,7 +425,7 @@ export const MovieDetailScreen = ({ navigation, route }) => {
 
                 {/* --- 5. CAST & CREW --- */}
                 {cast && cast.length > 0 && (
-                    <View style={styles.section}>
+                    <View style={[styles.section, isTV && { paddingHorizontal: 36 }]}>
                         <Text style={styles.sectionHeader}>Top Cast</Text>
                         <ScrollView
                             horizontal
@@ -495,12 +531,12 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     navCircleBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(15, 18, 23, 0.75)',
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: 'rgba(255, 255, 255, 0.14)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
+        borderColor: 'rgba(255, 255, 255, 0.25)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -595,15 +631,26 @@ const styles = StyleSheet.create({
         marginTop: 10,
         marginBottom: 24,
     },
+    actionsContainerTV: {
+        paddingHorizontal: 36,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        flexWrap: 'wrap',
+    },
     mainPlayBtn: {
-        borderRadius: 20,
+        borderRadius: 999,
         overflow: 'hidden',
         marginBottom: 12,
         shadowColor: '#FF2442',
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
+        shadowOpacity: 0.45,
         shadowRadius: 12,
         elevation: 8,
+    },
+    mainPlayBtnTV: {
+        marginBottom: 0,
+        maxWidth: 280,
     },
     mainPlayGradient: {
         flexDirection: 'row',
@@ -628,16 +675,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#141821',
+        backgroundColor: 'rgba(255, 255, 255, 0.10)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        borderRadius: 16,
+        borderColor: 'rgba(255, 255, 255, 0.22)',
+        borderRadius: 999,
         paddingVertical: 11,
         gap: 6,
     },
     bookmarkedActive: {
-        borderColor: 'rgba(255, 36, 66, 0.4)',
-        backgroundColor: 'rgba(255, 36, 66, 0.1)',
+        borderColor: 'rgba(255, 36, 66, 0.6)',
+        backgroundColor: 'rgba(255, 36, 66, 0.22)',
     },
     secondaryActionText: {
         color: '#D0D5DD',
@@ -647,11 +694,11 @@ const styles = StyleSheet.create({
     serverInfoPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#141821',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
-        borderRadius: 16,
-        paddingHorizontal: 12,
+        borderColor: 'rgba(255, 255, 255, 0.18)',
+        borderRadius: 999,
+        paddingHorizontal: 14,
         paddingVertical: 11,
         gap: 6,
     },

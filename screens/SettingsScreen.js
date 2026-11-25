@@ -54,7 +54,7 @@ export const SettingsScreen = () => {
         Linking.openURL('https://github.com/steveyout/youplex-apk').catch(() => {});
     };
 
-    const safeTopPadding = isTV ? 110 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
+    const safeTopPadding = isTV ? 28 : Math.max(insets.top + 76, Platform.OS === 'ios' ? 120 : 100);
 
     return (
         <View style={[styles.container, { backgroundColor: '#08090C' }]}>
@@ -134,7 +134,8 @@ export const SettingsScreen = () => {
 
                         {/* Preferred Provider Selector */}
                         <Pressable
-                            style={styles.rowPressable}
+                            focusable={true}
+                            style={({ focused }) => [styles.rowPressable, focused && styles.rowFocused]}
                             onPress={() => setShowProviderPicker(!showProviderPicker)}
                         >
                             <View style={styles.rowLeft}>
@@ -159,9 +160,11 @@ export const SettingsScreen = () => {
                                     return (
                                         <Pressable
                                             key={prov.id}
-                                            style={[
+                                            focusable={true}
+                                            style={({ focused }) => [
                                                 styles.providerOption,
                                                 isChosen && styles.providerOptionActive,
+                                                focused && styles.rowFocused,
                                             ]}
                                             onPress={() => {
                                                 setSelectedProvider(prov.id);
@@ -192,7 +195,11 @@ export const SettingsScreen = () => {
                 <View style={styles.section}>
                     <Text style={styles.sectionLabel}>DATA MANAGEMENT</Text>
                     <View style={styles.card}>
-                        <Pressable style={styles.rowPressable} onPress={handleClearHistory}>
+                        <Pressable
+                            focusable={true}
+                            style={({ focused }) => [styles.rowPressable, focused && styles.rowFocused]}
+                            onPress={handleClearHistory}
+                        >
                             <View style={styles.rowLeft}>
                                 <View style={styles.iconCircle}>
                                     <Trash2 size={18} color="#FF2442" />
@@ -207,7 +214,11 @@ export const SettingsScreen = () => {
 
                         <View style={styles.divider} />
 
-                        <Pressable style={styles.rowPressable} onPress={handleClearBookmarks}>
+                        <Pressable
+                            focusable={true}
+                            style={({ focused }) => [styles.rowPressable, focused && styles.rowFocused]}
+                            onPress={handleClearBookmarks}
+                        >
                             <View style={styles.rowLeft}>
                                 <View style={styles.iconCircle}>
                                     <Trash2 size={18} color="#FF2442" />
@@ -226,7 +237,11 @@ export const SettingsScreen = () => {
                 <View style={styles.section}>
                     <Text style={styles.sectionLabel}>ABOUT</Text>
                     <View style={styles.card}>
-                        <Pressable style={styles.rowPressable} onPress={handleOpenRepo}>
+                        <Pressable
+                            focusable={true}
+                            style={({ focused }) => [styles.rowPressable, focused && styles.rowFocused]}
+                            onPress={handleOpenRepo}
+                        >
                             <View style={styles.rowLeft}>
                                 <View style={styles.iconCircle}>
                                     <Github size={18} color="#FFFFFF" />
@@ -253,7 +268,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     scrollContentTV: {
-        paddingLeft: 120,
+        paddingLeft: 96,
+        paddingRight: 28,
+    },
+    rowFocused: {
+        backgroundColor: 'rgba(255, 36, 66, 0.14)',
+        borderColor: '#FF2442',
+        borderWidth: 1.5,
     },
     header: {
         flexDirection: 'row',

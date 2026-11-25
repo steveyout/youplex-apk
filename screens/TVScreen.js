@@ -5,7 +5,7 @@ import {
     ScrollView,
     ActivityIndicator,
     FlatList,
-    ImageBackground,
+    Image,
     Dimensions,
     Platform,
     Pressable,
@@ -25,6 +25,7 @@ import {
 import { Play, Plus, Info, Tv, Sparkles, Check, Flame } from 'lucide-react-native';
 import { isBookmarked, toggleBookmark } from '../services/bookmarksService';
 import { TopBar } from '../components/TopBar';
+import { TVGlassHero } from '../components/TVGlassHero';
 import { ScreenSkeleton } from '../components/SkeletonLoader';
 import { isTV } from '../utils/device';
 
@@ -42,9 +43,9 @@ export const TVScreen = () => {
     const [loading, setLoading] = useState(true);
     const [heroBookmarked, setHeroBookmarked] = useState(false);
 
-    const TV_LEFT_OFFSET = 100;
+    const TV_LEFT_OFFSET = 76;
     const CONTENT_WIDTH = isTV ? width - TV_LEFT_OFFSET : width;
-    const HERO_HEIGHT = isTV ? height * 0.72 : Math.min(height * 0.58, 480);
+    const HERO_HEIGHT = isTV ? Math.round(height * 0.52) : Math.min(height * 0.58, 480);
 
     useEffect(() => {
         const loadTVShows = async () => {
@@ -59,12 +60,15 @@ export const TVScreen = () => {
                     data?.map((m) => ({
                         id: m.id,
                         title: m.name,
+                        overview: m.overview || '',
                         image: `${IMAGE_PATH}${m.poster_path}`,
                         backdrop: m.backdrop_path
                             ? `https://image.tmdb.org/t/p/original${m.backdrop_path}`
                             : `${IMAGE_PATH}${m.poster_path}`,
                         rating: m.vote_average?.toFixed(1),
                         year: (m.first_air_date || '').split('-')[0],
+                        first_air_date: m.first_air_date || '',
+                        genre_ids: m.genre_ids || [],
                         media_type: 'tv',
                     })) || [];
 
@@ -107,7 +111,7 @@ export const TVScreen = () => {
                 data={data}
                 keyExtractor={(item) => `tv-${item.id}`}
                 renderItem={({ item }) => <MovieCard item={item} />}
-                contentContainerStyle={{ paddingLeft: 18 }}
+                contentContainerStyle={{ paddingLeft: isTV ? 28 : 18 }}
                 removeClippedSubviews={Platform.OS === 'android'}
             />
         </View>
@@ -125,23 +129,26 @@ export const TVScreen = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    isTV && { paddingLeft: TV_LEFT_OFFSET },
                     { paddingBottom: 110 + insets.bottom },
                 ]}
             >
                 {/* --- 1. CINEMATIC HERO BANNER --- */}
-                {heroShow && (
+                {isTV ? (
+                    <TVGlassHero items={sections.popular} mediaType="tv" />
+                ) : (
+                    heroShow && (
                     <View style={[styles.heroWrapper, { width: CONTENT_WIDTH, height: HERO_HEIGHT }]}>
-                        <ImageBackground
-                            source={{ uri: heroShow.backdrop }}
-                            style={styles.hero}
-                            resizeMode="cover"
-                        >
+                        <View style={styles.hero}>
+                            <Image
+                                source={{ uri: heroShow.backdrop }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                resizeMode="cover"
+                            />
                             <LinearGradient
                                 colors={[
-                                    'rgba(8, 9, 12, 0.45)',
+                                    'rgba(8, 9, 12, 0.35)',
                                     'transparent',
-                                    'rgba(8, 9, 12, 0.75)',
+                                    'rgba(8, 9, 12, 0.72)',
                                     '#08090C',
                                 ]}
                                 style={styles.heroGradient}
@@ -149,7 +156,7 @@ export const TVScreen = () => {
                                 end={{ x: 0.5, y: 1 }}
                             />
 
-                            <View style={[styles.heroContent, isTV && styles.heroContentTV]}>
+                            <View style={styles.heroContent}>
                                 {/* Badges Row */}
                                 <View style={styles.heroBadgeRow}>
                                     <View style={styles.cinemaBadge}>
@@ -171,10 +178,7 @@ export const TVScreen = () => {
                                 </View>
 
                                 {/* TV Show Title */}
-                                <Text
-                                    style={[styles.heroTitle, isTV && styles.heroTitleTV]}
-                                    numberOfLines={2}
-                                >
+                                <Text style={styles.heroTitle} numberOfLines={2}>
                                     {heroShow.title}
                                 </Text>
 
@@ -196,12 +200,10 @@ export const TVScreen = () => {
                                             colors={['#FF3B56', '#FF1E3C', '#B3001E']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
-                                            style={[styles.playBtnGradient, isTV && styles.playBtnGradientTV]}
+                                            style={styles.playBtnGradient}
                                         >
-                                            <Play size={isTV ? 22 : 18} color="#FFFFFF" fill="#FFFFFF" />
-                                            <Text style={[styles.playBtnText, isTV && { fontSize: 17 }]}>
-                                                Watch Now
-                                            </Text>
+                                            <Play size={18} color="#FFFFFF" fill="#FFFFFF" />
+                                            <Text style={styles.playBtnText}>Watch Now</Text>
                                         </LinearGradient>
                                     </Pressable>
 
@@ -242,12 +244,13 @@ export const TVScreen = () => {
                                     </Pressable>
                                 </View>
                             </View>
-                        </ImageBackground>
+                        </View>
                     </View>
+                    )
                 )}
 
                 {/* Series Rows */}
-                <View style={styles.rowsContainer}>
+                <View style={[styles.rowsContainer, isTV && { paddingLeft: 68 }]}>
                     {renderRow('Popular TV Shows', sections.popular.slice(1))}
                     {renderRow('Airing Today', sections.airingToday)}
                     {renderRow('Critically Acclaimed TV', sections.topRated)}
@@ -298,8 +301,16 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     heroContentTV: {
-        paddingLeft: 36,
-        paddingBottom: 32,
+        paddingLeft: 28,
+        paddingRight: 28,
+        paddingBottom: 18,
+        maxWidth: 560,
+    },
+    heroOverviewTV: {
+        color: '#D0D5DD',
+        fontSize: 12.5,
+        lineHeight: 18,
+        marginBottom: 12,
     },
     heroBadgeRow: {
         flexDirection: 'row',
@@ -375,9 +386,9 @@ const styles = StyleSheet.create({
         textShadowRadius: 8,
     },
     heroTitleTV: {
-        fontSize: 48,
-        lineHeight: 56,
-        marginBottom: 16,
+        fontSize: 34,
+        lineHeight: 40,
+        marginBottom: 8,
     },
     heroButtons: {
         flexDirection: 'row',
@@ -417,8 +428,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     playBtnGradientTV: {
-        paddingHorizontal: 28,
-        paddingVertical: 14,
+        paddingHorizontal: 22,
+        paddingVertical: 12,
     },
     playBtnText: {
         color: '#FFFFFF',
@@ -445,7 +456,7 @@ const styles = StyleSheet.create({
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 18,
+        paddingHorizontal: isTV ? 28 : 18,
         marginBottom: 12,
     },
     sectionAccent: {

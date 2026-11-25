@@ -1,3 +1,4 @@
+import './utils/polyfills';
 import React, { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -19,13 +20,12 @@ export default function App() {
 
     // --- HOOK 1: Status Bar & Immersive Navigation Bar ---
     useEffect(() => {
-        if (Platform.OS === 'android') {
+        if (Platform.OS === 'android' && !isTV) {
             const configureNavigation = async () => {
                 try {
-                    await NavigationBar.setPositionAsync('absolute');
-                    await NavigationBar.setBackgroundColorAsync('#00000000');
-                    await NavigationBar.setBehaviorAsync('overlay-swipe');
-                    await NavigationBar.setVisibilityAsync('hidden');
+                    if (typeof NavigationBar.setVisibilityAsync === 'function') {
+                        await NavigationBar.setVisibilityAsync('hidden');
+                    }
                 } catch (e) {
                     console.warn('NavigationBar error:', e);
                 }
@@ -34,13 +34,15 @@ export default function App() {
 
             let sub;
             try {
-                sub = NavigationBar.addVisibilityListener(({ visibility }) => {
-                    if (visibility === 'visible') {
-                        setTimeout(() => {
-                            NavigationBar.setVisibilityAsync('hidden').catch(() => {});
-                        }, 2500);
-                    }
-                });
+                if (typeof NavigationBar.addVisibilityListener === 'function') {
+                    sub = NavigationBar.addVisibilityListener(({ visibility }) => {
+                        if (visibility === 'visible') {
+                            setTimeout(() => {
+                                NavigationBar.setVisibilityAsync('hidden').catch(() => {});
+                            }, 2500);
+                        }
+                    });
+                }
             } catch (err) {
                 // Ignore if listener not supported in certain client hosts
             }

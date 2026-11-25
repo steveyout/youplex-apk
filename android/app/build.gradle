@@ -82,6 +82,19 @@ android {
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DCMAKE_OBJECT_PATH_MAX=220"
+            }
+        }
+    }
+    if (org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_WINDOWS)) {
+        externalNativeBuild {
+            cmake {
+                buildStagingDirectory file("C:/cxx/app")
+            }
+        }
     }
     signingConfigs {
         debug {

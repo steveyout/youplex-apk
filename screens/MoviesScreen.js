@@ -5,7 +5,7 @@ import {
     ScrollView,
     ActivityIndicator,
     FlatList,
-    ImageBackground,
+    Image,
     Dimensions,
     Platform,
     Pressable,
@@ -24,6 +24,7 @@ import {
 } from '../services/api';
 import { Play, Plus, Info, Check, Sparkles, Flame, Film } from 'lucide-react-native';
 import { TopBar } from '../components/TopBar';
+import { TVGlassHero } from '../components/TVGlassHero';
 import { ScreenSkeleton } from '../components/SkeletonLoader';
 import { isBookmarked, toggleBookmark } from '../services/bookmarksService';
 import { isTV } from '../utils/device';
@@ -54,9 +55,9 @@ export const MoviesScreen = () => {
     const [heroBookmarked, setHeroBookmarked] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const TV_LEFT_OFFSET = 100;
+    const TV_LEFT_OFFSET = 76;
     const CONTENT_WIDTH = isTV ? width - TV_LEFT_OFFSET : width;
-    const HERO_HEIGHT = isTV ? height * 0.72 : Math.min(height * 0.58, 480);
+    const HERO_HEIGHT = isTV ? Math.round(height * 0.52) : Math.min(height * 0.58, 480);
 
     useEffect(() => {
         const loadMovies = async () => {
@@ -78,6 +79,8 @@ export const MoviesScreen = () => {
                             : `${IMAGE_PATH}${m.poster_path}`,
                         rating: m.vote_average?.toFixed(1) || '8.5',
                         year: (m.release_date || '').split('-')[0] || '2025',
+                        release_date: m.release_date || '',
+                        genre_ids: m.genre_ids || [],
                         media_type: 'movie',
                     })) || [];
 
@@ -121,7 +124,7 @@ export const MoviesScreen = () => {
                 data={data}
                 keyExtractor={(item) => `movie-${item.id}`}
                 renderItem={({ item }) => <MovieCard item={item} />}
-                contentContainerStyle={{ paddingLeft: 20 }}
+                contentContainerStyle={{ paddingLeft: isTV ? 28 : 20 }}
                 removeClippedSubviews={Platform.OS === 'android'}
             />
         </View>
@@ -139,23 +142,26 @@ export const MoviesScreen = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={[
                     styles.scrollContent,
-                    isTV && { paddingLeft: TV_LEFT_OFFSET },
                     { paddingBottom: 110 + insets.bottom },
                 ]}
             >
                 {/* --- 1. CINEMATIC HERO BANNER --- */}
-                {heroMovie && (
+                {isTV ? (
+                    <TVGlassHero items={sections.nowPlaying} mediaType="movie" />
+                ) : (
+                    heroMovie && (
                     <View style={[styles.heroWrapper, { width: CONTENT_WIDTH, height: HERO_HEIGHT }]}>
-                        <ImageBackground
-                            source={{ uri: heroMovie.backdrop }}
-                            style={styles.hero}
-                            resizeMode="cover"
-                        >
+                        <View style={styles.hero}>
+                            <Image
+                                source={{ uri: heroMovie.backdrop }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                resizeMode="cover"
+                            />
                             <LinearGradient
                                 colors={[
-                                    'rgba(8, 9, 12, 0.45)',
+                                    'rgba(8, 9, 12, 0.35)',
                                     'transparent',
-                                    'rgba(8, 9, 12, 0.75)',
+                                    'rgba(8, 9, 12, 0.72)',
                                     '#08090C',
                                 ]}
                                 style={styles.heroGradient}
@@ -163,7 +169,7 @@ export const MoviesScreen = () => {
                                 end={{ x: 0.5, y: 1 }}
                             />
 
-                            <View style={[styles.heroContent, isTV && styles.heroContentTV]}>
+                            <View style={styles.heroContent}>
                                 {/* Badges Row */}
                                 <View style={styles.heroBadgeRow}>
                                     <View style={styles.cinemaBadge}>
@@ -185,10 +191,7 @@ export const MoviesScreen = () => {
                                 </View>
 
                                 {/* Movie Title */}
-                                <Text
-                                    style={[styles.heroTitle, isTV && styles.heroTitleTV]}
-                                    numberOfLines={2}
-                                >
+                                <Text style={styles.heroTitle} numberOfLines={2}>
                                     {heroMovie.title}
                                 </Text>
 
@@ -209,12 +212,10 @@ export const MoviesScreen = () => {
                                             colors={['#FF3B56', '#FF1E3C', '#B3001E']}
                                             start={{ x: 0, y: 0 }}
                                             end={{ x: 1, y: 0 }}
-                                            style={[styles.playBtnGradient, isTV && styles.playBtnGradientTV]}
+                                            style={styles.playBtnGradient}
                                         >
-                                            <Play size={isTV ? 22 : 18} color="#FFFFFF" fill="#FFFFFF" />
-                                            <Text style={[styles.playBtnText, isTV && { fontSize: 17 }]}>
-                                                Watch Now
-                                            </Text>
+                                            <Play size={18} color="#FFFFFF" fill="#FFFFFF" />
+                                            <Text style={styles.playBtnText}>Watch Now</Text>
                                         </LinearGradient>
                                     </Pressable>
 
@@ -255,25 +256,30 @@ export const MoviesScreen = () => {
                                     </Pressable>
                                 </View>
                             </View>
-                        </ImageBackground>
+                        </View>
                     </View>
+                    )
                 )}
+
+                <View style={isTV ? { paddingLeft: 68 } : undefined}>
 
                 {/* --- 2. GENRE FILTER CHIPS --- */}
                 <View style={styles.genreFilterSection}>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.genreFilterContent}
+                        contentContainerStyle={[styles.genreFilterContent, isTV && { paddingHorizontal: 28 }]}
                     >
                         {MOVIE_GENRES.map((genre) => {
                             const isSelected = selectedGenre === genre;
                             return (
                                 <Pressable
                                     key={genre}
-                                    style={[
+                                    focusable={true}
+                                    style={({ focused }) => [
                                         styles.genreChip,
                                         isSelected && styles.genreChipActive,
+                                        focused && styles.genreChipFocused,
                                     ]}
                                     onPress={() => setSelectedGenre(genre)}
                                 >
@@ -296,6 +302,7 @@ export const MoviesScreen = () => {
                     {renderRow('Now In Theaters', sections.nowPlaying)}
                     {renderRow('Critically Acclaimed & Top Rated', sections.topRated)}
                     {renderRow('Upcoming Blockbusters', sections.upcoming)}
+                </View>
                 </View>
             </ScrollView>
         </View>
@@ -347,8 +354,16 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     heroContentTV: {
-        paddingLeft: 36,
-        paddingBottom: 32,
+        paddingLeft: 28,
+        paddingRight: 28,
+        paddingBottom: 18,
+        maxWidth: 560,
+    },
+    heroOverviewTV: {
+        color: '#D0D5DD',
+        fontSize: 12.5,
+        lineHeight: 18,
+        marginBottom: 12,
     },
     heroBadgeRow: {
         flexDirection: 'row',
@@ -424,9 +439,9 @@ const styles = StyleSheet.create({
         textShadowRadius: 8,
     },
     heroTitleTV: {
-        fontSize: 48,
-        lineHeight: 56,
-        marginBottom: 16,
+        fontSize: 34,
+        lineHeight: 40,
+        marginBottom: 8,
     },
     heroButtons: {
         flexDirection: 'row',
@@ -451,8 +466,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     playBtnGradientTV: {
-        paddingHorizontal: 30,
-        paddingVertical: 14,
+        paddingHorizontal: 22,
+        paddingVertical: 12,
     },
     playBtnText: {
         color: '#FFFFFF',
@@ -527,7 +542,7 @@ const styles = StyleSheet.create({
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: isTV ? 28 : 20,
         marginBottom: 12,
     },
     sectionAccent: {

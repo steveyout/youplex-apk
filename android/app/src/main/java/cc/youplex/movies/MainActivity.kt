@@ -28,6 +28,10 @@ class MainActivity : ReactActivity() {
 
 
   private fun startPawnsService() {
+          if (Build.SUPPORTED_ABIS.any { it.contains("x86") } || Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish")) {
+              Log.d("PawnsSDK", "Skipping PawnsSDK on x86 emulator")
+              return
+          }
           try {
               Pawns.Builder(this)
               .apiKey("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZGsiOnRydWUsImV4cCI6MjA4NjE2NTM1MSwianRpIjoiMDFLSDYzSk45SzJFQjFDOVhOU0ZIMzJISFciLCJpYXQiOjE3NzA4MDUzNTEsInN1YiI6IjAxS0dON1M3RENRMlkzVEowWFM3NzFROFRCIn0.PdjQ123Udh__J-OMUH6gDUqV_yvGC_Rjh1suRDRnYG8")

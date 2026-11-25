@@ -18,6 +18,8 @@ export const TopBar = () => {
     const insets = useSafeAreaInsets();
     const [aiModalVisible, setAiModalVisible] = useState(false);
 
+    if (isTV) return null;
+
     const TV_OFFSET = 100;
     const TOPBAR_WIDTH = isTV ? width - TV_OFFSET : width;
     const safeTop = isTV ? 20 : Math.max(insets.top + 6, Platform.OS === 'ios' ? 48 : 34);

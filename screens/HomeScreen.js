@@ -5,7 +5,6 @@ import {
     ScrollView,
     ActivityIndicator,
     FlatList,
-    ImageBackground,
     Pressable,
     Image,
     Platform,
@@ -27,6 +26,7 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TopBar } from '../components/TopBar';
+import { TVGlassHero } from '../components/TVGlassHero';
 import { ScreenSkeleton } from '../components/SkeletonLoader';
 import { useAppTheme } from '../theme/ThemeContext';
 import { MovieCard } from '../components/MovieCard';
@@ -64,9 +64,9 @@ export const HomeScreen = () => {
     const [loading, setLoading] = useState(true);
     const [aiModalVisible, setAiModalVisible] = useState(false);
 
-    const TV_LEFT_OFFSET = 100;
+    const TV_LEFT_OFFSET = 76;
     const HERO_WIDTH = isTV ? width - TV_LEFT_OFFSET : width;
-    const HERO_HEIGHT = isTV ? height * 0.72 : Math.min(height * 0.58, 480);
+    const HERO_HEIGHT = isTV ? Math.round(height * 0.52) : Math.min(height * 0.58, 480);
 
     useEffect(() => {
         const loadData = async () => {
@@ -143,23 +143,30 @@ export const HomeScreen = () => {
                 contentContainerStyle={[
                     styles.scrollContent,
                     { paddingBottom: 110 + insets.bottom },
-                    isTV && { paddingLeft: TV_LEFT_OFFSET },
                 ]}
             >
                 {/* --- 1. CINEMATIC HERO BANNER --- */}
-                {heroMovie && (
+                {isTV ? (
+                    <TVGlassHero
+                        items={trendingMovies}
+                        mediaType="movie"
+                        onOpenAI={() => setAiModalVisible(true)}
+                    />
+                ) : (
+                    heroMovie && (
                     <View style={[styles.heroContainer, { height: HERO_HEIGHT, width: HERO_WIDTH }]}>
-                        <ImageBackground
-                            source={{ uri: heroMovie.backdrop }}
-                            style={styles.heroImage}
-                            resizeMode="cover"
-                        >
+                        <View style={styles.heroImage}>
+                            <Image
+                                source={{ uri: heroMovie.backdrop }}
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                                resizeMode="cover"
+                            />
                             {/* Multi-Stop Dark Fade */}
                             <LinearGradient
                                 colors={[
-                                    'rgba(8, 9, 12, 0.4)',
+                                    'rgba(8, 9, 12, 0.35)',
                                     'transparent',
-                                    'rgba(8, 9, 12, 0.75)',
+                                    'rgba(8, 9, 12, 0.72)',
                                     '#08090C',
                                 ]}
                                 style={styles.heroGradient}
@@ -176,13 +183,7 @@ export const HomeScreen = () => {
                                 </View>
 
                                 {/* Title */}
-                                <Text
-                                    style={[
-                                        styles.heroTitle,
-                                        isTV && { fontSize: 44, lineHeight: 52 },
-                                    ]}
-                                    numberOfLines={2}
-                                >
+                                <Text style={styles.heroTitle} numberOfLines={2}>
                                     {heroMovie.title}
                                 </Text>
 
@@ -212,7 +213,7 @@ export const HomeScreen = () => {
                                                 item: heroMovie,
                                             })
                                         }
-                                        focusable={true} hasTVPreferredFocus={true} style={({ focused }) => [styles.heroPlayBtn, focused && styles.btnFocusedGlow]}
+                                        style={styles.heroPlayBtn}
                                     >
                                         <LinearGradient
                                             colors={['#FF3B56', '#FF1E3C', '#B3001E']}
@@ -228,7 +229,7 @@ export const HomeScreen = () => {
                                     {/* Watchlist Toggle */}
                                     <Pressable
                                         onPress={() => handleToggleHeroBookmark(heroMovie)}
-                                        focusable={true} style={({ focused }) => [styles.heroListBtn, focused && styles.btnFocusedGlow]}
+                                        style={styles.heroListBtn}
                                     >
                                         {heroBookmarked ? (
                                             <Check color="#FF2442" size={18} />
@@ -253,62 +254,69 @@ export const HomeScreen = () => {
                                                 type: 'movie',
                                             })
                                         }
-                                        focusable={true} style={({ focused }) => [styles.heroInfoBtn, focused && styles.btnFocusedGlow]}
+                                        style={styles.heroInfoBtn}
                                     >
                                         <ChevronRight color="#98A2B3" size={18} />
                                     </Pressable>
                                 </View>
                             </View>
-                        </ImageBackground>
+                        </View>
+                    </View>
+                    )
+                )}
+
+                <View style={isTV ? { paddingLeft: 68 } : undefined}>
+
+                {/* --- 2. AI MOVIE ASSISTANT PROMPT BAR (Mobile Only) --- */}
+                {!isTV && (
+                    <View style={styles.aiPromptSection}>
+                        <Pressable
+                            onPress={() => setAiModalVisible(true)}
+                            style={styles.aiPromptCard}
+                        >
+                            <LinearGradient
+                                colors={['rgba(255, 36, 66, 0.16)', 'rgba(15, 18, 23, 0.95)']}
+                                style={styles.aiPromptGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <View style={styles.aiPromptLeft}>
+                                    <View style={styles.aiSparkleBox}>
+                                        <Sparkles color="#FF2442" size={20} />
+                                    </View>
+                                    <View style={styles.aiPromptTextBox}>
+                                        <Text style={styles.aiPromptHeadline}>Personalized Discover</Text>
+                                        <Text style={styles.aiPromptSub}>
+                                            Discover movies tailored to your watch history & mood
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={styles.aiPromptArrow}>
+                                    <ChevronRight color="#FF2442" size={18} />
+                                </View>
+                            </LinearGradient>
+                        </Pressable>
                     </View>
                 )}
 
-                {/* --- 2. AI MOVIE ASSISTANT PROMPT BAR --- */}
-                <View style={styles.aiPromptSection}>
-                    <Pressable
-                        onPress={() => setAiModalVisible(true)}
-                        style={styles.aiPromptCard}
-                    >
-                        <LinearGradient
-                            colors={['rgba(255, 36, 66, 0.16)', 'rgba(15, 18, 23, 0.95)']}
-                            style={styles.aiPromptGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <View style={styles.aiPromptLeft}>
-                                <View style={styles.aiSparkleBox}>
-                                    <Sparkles color="#FF2442" size={20} />
-                                </View>
-                                <View style={styles.aiPromptTextBox}>
-                                    <Text style={styles.aiPromptHeadline}>Personalized Discover</Text>
-                                    <Text style={styles.aiPromptSub}>
-                                        Discover movies tailored to your watch history & mood
-                                    </Text>
-                                </View>
-                            </View>
-                            <View style={styles.aiPromptArrow}>
-                                <ChevronRight color="#FF2442" size={18} />
-                            </View>
-                        </LinearGradient>
-                    </Pressable>
-                </View>
-
                 {/* --- 3. GENRE FILTER CHIPS --- */}
-                <View style={styles.genreRowContainer}>
+                <View style={[styles.genreRowContainer, isTV && { marginTop: 8, marginBottom: 14 }]}>
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.genreScroll}
+                        contentContainerStyle={[styles.genreScroll, isTV && { paddingHorizontal: 28 }]}
                     >
                         {GENRES.map((g) => {
                             const isSelected = selectedGenre === g.id;
                             return (
                                 <Pressable
                                     key={g.id}
+                                    focusable={true}
                                     onPress={() => setSelectedGenre(g.id)}
-                                    style={[
+                                    style={({ focused }) => [
                                         styles.genrePill,
                                         isSelected && styles.genrePillActive,
+                                        focused && styles.genrePillFocused,
                                     ]}
                                 >
                                     {isSelected ? (
@@ -335,7 +343,7 @@ export const HomeScreen = () => {
                                 <Clock color="#FF2442" size={17} />
                                 <Text style={styles.sectionTitle}>Continue Watching</Text>
                             </View>
-                            <Pressable onPress={() => navigation.navigate('History')}>
+                            <Pressable focusable={true} onPress={() => navigation.navigate('History')} style={({ focused }) => [focused && styles.tvLinkFocused]}>
                                 <Text style={styles.seeAllText}>See All</Text>
                             </Pressable>
                         </View>
@@ -455,7 +463,7 @@ export const HomeScreen = () => {
                             <Tv color="#FF2442" size={17} />
                             <Text style={styles.sectionTitle}>Popular TV Series</Text>
                         </View>
-                        <Pressable onPress={() => navigation.navigate('Tv')}>
+                        <Pressable focusable={true} onPress={() => navigation.navigate('Tv')} style={({ focused }) => [focused && styles.tvLinkFocused]}>
                             <Text style={styles.seeAllText}>Explore</Text>
                         </Pressable>
                     </View>
@@ -476,7 +484,7 @@ export const HomeScreen = () => {
                             <Film color="#FF2442" size={17} />
                             <Text style={styles.sectionTitle}>Trending Movies</Text>
                         </View>
-                        <Pressable onPress={() => navigation.navigate('Movies')}>
+                        <Pressable focusable={true} onPress={() => navigation.navigate('Movies')} style={({ focused }) => [focused && styles.tvLinkFocused]}>
                             <Text style={styles.seeAllText}>More</Text>
                         </Pressable>
                     </View>
@@ -488,6 +496,7 @@ export const HomeScreen = () => {
                         contentContainerStyle={styles.horizontalList}
                         renderItem={({ item }) => <MovieCard item={item} />}
                     />
+                </View>
                 </View>
             </ScrollView>
 
@@ -556,6 +565,38 @@ const styles = StyleSheet.create({
     heroContent: {
         paddingHorizontal: 20,
         paddingBottom: 20,
+    },
+    heroContentTV: {
+        paddingLeft: 28,
+        paddingRight: 28,
+        paddingBottom: 16,
+        maxWidth: 560,
+    },
+    heroOverviewTV: {
+        color: '#D0D5DD',
+        fontSize: 12.5,
+        lineHeight: 18,
+        marginBottom: 12,
+    },
+    heroAiBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255, 36, 66, 0.16)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 36, 66, 0.45)',
+        borderRadius: 22,
+        paddingVertical: 11,
+        paddingHorizontal: 14,
+        gap: 6,
+    },
+    tvLinkFocused: {
+        backgroundColor: 'rgba(255, 36, 66, 0.18)',
+        borderColor: '#FF2442',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
     },
     aiPickBadge: {
         flexDirection: 'row',
@@ -747,9 +788,9 @@ const styles = StyleSheet.create({
     },
     genrePill: {
         borderRadius: 18,
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.08)',
+        borderColor: 'rgba(255, 255, 255, 0.16)',
         overflow: 'hidden',
     },
     genrePillActive: {
@@ -772,13 +813,13 @@ const styles = StyleSheet.create({
         fontWeight: '800',
     },
     sectionContainer: {
-        marginBottom: 26,
+        marginBottom: isTV ? 18 : 26,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 18,
+        paddingHorizontal: isTV ? 28 : 18,
         marginBottom: 12,
     },
     sectionTitleRow: {
@@ -810,7 +851,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     horizontalList: {
-        paddingHorizontal: 18,
+        paddingHorizontal: isTV ? 28 : 18,
     },
     cwCard: {
         width: 170,

@@ -5419,7 +5419,7 @@ const getDebridToken = () => {
   } catch {
   }
   try {
-    if (typeof window === "undefined") return null;
+    if (typeof window === "undefined" || !window.localStorage) return null;
     const prefData = window.localStorage.getItem("__MW::preferences");
     if (!prefData) return null;
     const parsedAuth = JSON.parse(prefData);
@@ -5436,7 +5436,7 @@ const getDebridService = () => {
   } catch {
   }
   try {
-    if (typeof window === "undefined") return "real-debrid";
+    if (typeof window === "undefined" || !window.localStorage) return "real-debrid";
     const prefData = window.localStorage.getItem("__MW::preferences");
     if (!prefData) return "real-debrid";
     const parsedPrefs = JSON.parse(prefData);

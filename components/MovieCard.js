@@ -8,17 +8,17 @@ import { isTV } from '../utils/device';
 
 const { width } = Dimensions.get('window');
 
-export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
+export const MovieCard = ({ item, isGrid, rank, showMatch = false, customWidth }) => {
     const { theme } = useAppTheme();
     const navigation = useNavigation();
     const [isFocused, setIsFocused] = useState(false);
 
     if (!item) return null;
 
-    const availableWidth = isTV ? width - 100 : width;
+    const availableWidth = isTV ? width - 76 : width;
     const mobileWidth = isGrid ? (width - 48) / 3 : 138;
-    const tvWidth = isGrid ? (availableWidth - 120) / 5 : 210;
-    const cardWidth = isTV ? tvWidth : mobileWidth;
+    const tvWidth = isGrid ? Math.floor((availableWidth - 130) / 5) : 136;
+    const cardWidth = customWidth || (isTV ? tvWidth : mobileWidth);
 
     const ratingVal = parseFloat(item.rating || item.vote_average);
     const hasRating = !isNaN(ratingVal) && ratingVal > 0;
@@ -41,8 +41,8 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
             style={({ pressed }) => [
                 styles.card,
                 {
-                    width: rank ? cardWidth + 34 : cardWidth,
-                    marginRight: isGrid ? (isTV ? 20 : 8) : 12,
+                    width: rank ? cardWidth + (isTV ? 28 : 34) : cardWidth,
+                    marginRight: isGrid ? (isTV ? 16 : 8) : 12,
                     transform: [{ scale: isFocused ? 1.08 : 1.0 }],
                     zIndex: isFocused ? 10 : 1,
                 },
@@ -52,8 +52,8 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
             <View style={styles.cardContentRow}>
                 {/* Ranking Numeral for Top 10 Carousels */}
                 {Boolean(rank) && (
-                    <View style={styles.rankContainer}>
-                        <Text style={styles.rankText}>{rank}</Text>
+                    <View style={[styles.rankContainer, isTV && { width: 28 }]}>
+                        <Text style={[styles.rankText, isTV && { fontSize: 40 }]}>{rank}</Text>
                     </View>
                 )}
 
@@ -64,7 +64,7 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
                             {
                                 height: cardWidth * 1.48,
                                 backgroundColor: '#12161F',
-                                borderColor: isFocused ? '#FF2442' : 'rgba(255, 255, 255, 0.08)',
+                                borderColor: isFocused ? '#FF2442' : 'rgba(255, 255, 255, 0.14)',
                             },
                             isFocused && styles.focusedGlow,
                         ]}
@@ -113,7 +113,7 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
                             styles.title,
                             {
                                 color: isFocused ? '#FF2442' : '#FFFFFF',
-                                fontSize: isTV ? 15 : 12.5,
+                                fontSize: isTV ? 13.5 : 12.5,
                             },
                         ]}
                     >
@@ -138,7 +138,7 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false }) => {
 
 const styles = StyleSheet.create({
     card: {
-        marginBottom: isTV ? 28 : 12,
+        marginBottom: isTV ? 16 : 12,
     },
     cardContentRow: {
         flexDirection: 'row',
@@ -186,12 +186,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 8,
         left: 8,
-        backgroundColor: 'rgba(15, 18, 23, 0.82)',
-        paddingHorizontal: 6,
+        backgroundColor: 'rgba(15, 18, 25, 0.62)',
+        paddingHorizontal: 7,
         paddingVertical: 3,
-        borderRadius: 8,
-        borderWidth: 0.5,
-        borderColor: 'rgba(255, 255, 255, 0.12)',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.22)',
     },
     ratingText: {
         color: '#FFC107',
@@ -202,11 +202,11 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 8,
         right: 8,
-        backgroundColor: 'rgba(255, 36, 66, 0.2)',
-        borderColor: '#FF2442',
-        borderWidth: 0.8,
-        borderRadius: 5,
-        paddingHorizontal: 5,
+        backgroundColor: 'rgba(255, 36, 66, 0.26)',
+        borderColor: 'rgba(255, 36, 66, 0.7)',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 6,
         paddingVertical: 2,
     },
     qualityText: {

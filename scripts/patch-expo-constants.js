@@ -309,9 +309,48 @@ function findAndPatch(dir) {
   }
 }
 
+function patchPressableFocus(rootDir) {
+  const candidates = [
+    path.join(rootDir, 'node_modules', 'react-native', 'Libraries', 'Components', 'Pressable', 'Pressable.js'),
+  ];
+  for (const filePath of candidates) {
+    try {
+      if (!fs.existsSync(filePath)) continue;
+      let content = fs.readFileSync(filePath, 'utf8');
+      if (content.includes('style({pressed, focused})')) continue;
+      content = content
+        .replace(
+          'type PressableStateCallbackTypeCore = Readonly<{\n  pressed: boolean,\n}>;',
+          'type PressableStateCallbackTypeCore = Readonly<{\n  pressed: boolean,\n  focused?: boolean,\n}>;'
+        )
+        .replace(
+          'const [pressed, setPressed] = usePressState(testOnly_pressed === true);',
+          'const [pressed, setPressed] = usePressState(testOnly_pressed === true);\n  const [focused, setFocused] = useState(false);'
+        )
+        .replace(
+          '      delayPressIn: unstable_pressDelay,\n      onBlur,\n      onFocus,',
+          '      delayPressIn: unstable_pressDelay,\n      onBlur(event): void {\n        setFocused(false);\n        if (onBlur != null) {\n          onBlur(event);\n        }\n      },\n      onFocus(event): void {\n        setFocused(true);\n        if (onFocus != null) {\n          onFocus(event);\n        }\n      },'
+        )
+        .replace(
+          'style={typeof style === \'function\' ? style({pressed}) : style}',
+          'style={typeof style === \'function\' ? style({pressed, focused}) : style}'
+        )
+        .replace(
+          '{typeof children === \'function\' ? children({pressed}) : children}',
+          '{typeof children === \'function\' ? children({pressed, focused}) : children}'
+        );
+      fs.writeFileSync(filePath, content, 'utf8');
+      console.log('Successfully patched Pressable focus:', filePath);
+    } catch (err) {
+      console.warn('Failed to patch Pressable focus:', filePath, err.message);
+    }
+  }
+}
+
 console.log('Running patch-expo-constants and patch-expo-modules-core...');
 const rootDir = path.resolve(__dirname, '..');
 findAndPatch(path.join(rootDir, 'node_modules'));
 syncHermesc(rootDir);
 makeHermescExecutable(path.join(rootDir, 'node_modules'));
+patchPressableFocus(rootDir);
 console.log('Finished patching.');

@@ -13,13 +13,12 @@ export const BottomNav = ({ state, navigation }) => {
     const insets = useSafeAreaInsets();
 
     useEffect(() => {
-        if (Platform.OS === 'android') {
+        if (Platform.OS === 'android' && !isTV) {
             const setupNavBar = async () => {
                 try {
-                    await NavigationBar.setPositionAsync('absolute');
-                    await NavigationBar.setBackgroundColorAsync('#00000000');
-                    await NavigationBar.setBehaviorAsync('overlay-swipe');
-                    await NavigationBar.setVisibilityAsync('hidden');
+                    if (typeof NavigationBar.setVisibilityAsync === 'function') {
+                        await NavigationBar.setVisibilityAsync('hidden');
+                    }
                 } catch (e) {}
             };
             setupNavBar();
