@@ -28,7 +28,11 @@ export const ShimmerBlock = ({ style, borderRadius = 8, tint = 'glass' }) => {
         return () => loop.stop();
     }, [shimmerAnim]);
 
-    const tintStyle = tint === 'crimson' ? styles.shimmerCrimson : styles.shimmerBase;
+    const tintStyle = !isTV
+        ? styles.shimmerMobileBase
+        : tint === 'crimson'
+          ? styles.shimmerCrimson
+          : styles.shimmerBase;
 
     return (
         <Animated.View
@@ -300,6 +304,9 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#08090C',
     },
+    shimmerMobileBase: {
+        backgroundColor: '#161A24',
+    },
     shimmerBase: {
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
         borderWidth: 1,
@@ -325,12 +332,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(15, 18, 23, 0.7)',
         borderRadius: 22,
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.16)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
     },
     heroWrapper: {
         position: 'relative',

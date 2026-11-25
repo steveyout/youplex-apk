@@ -64,7 +64,11 @@ export const MovieCard = ({ item, isGrid, rank, showMatch = false, customWidth }
                             {
                                 height: cardWidth * 1.48,
                                 backgroundColor: '#12161F',
-                                borderColor: isFocused ? '#FF2442' : 'rgba(255, 255, 255, 0.14)',
+                                borderColor: isFocused
+                                    ? '#FF2442'
+                                    : isTV
+                                      ? 'rgba(255, 255, 255, 0.14)'
+                                      : 'rgba(255, 255, 255, 0.08)',
                             },
                             isFocused && styles.focusedGlow,
                         ]}
@@ -186,12 +190,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 8,
         left: 8,
-        backgroundColor: 'rgba(15, 18, 25, 0.62)',
+        backgroundColor: isTV ? 'rgba(15, 18, 25, 0.62)' : 'rgba(8, 9, 12, 0.85)',
         paddingHorizontal: 7,
         paddingVertical: 3,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.22)',
+        borderRadius: isTV ? 10 : 8,
+        borderWidth: isTV ? 1 : 0.5,
+        borderColor: isTV ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.15)',
     },
     ratingText: {
         color: '#FFC107',
@@ -202,10 +206,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 8,
         right: 8,
-        backgroundColor: 'rgba(255, 36, 66, 0.26)',
-        borderColor: 'rgba(255, 36, 66, 0.7)',
-        borderWidth: 1,
-        borderRadius: 8,
+        backgroundColor: isTV ? 'rgba(255, 36, 66, 0.26)' : 'rgba(255, 36, 66, 0.22)',
+        borderColor: isTV ? 'rgba(255, 36, 66, 0.7)' : 'rgba(255, 36, 66, 0.5)',
+        borderWidth: isTV ? 1 : 0.5,
+        borderRadius: isTV ? 8 : 6,
         paddingHorizontal: 6,
         paddingVertical: 2,
     },

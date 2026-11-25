@@ -53,11 +53,12 @@ export const SearchScreen = () => {
     const [results, setResults] = useState([]);
     const [defaultMovies, setDefaultMovies] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [initialLoading, setInitialLoading] = useState(true);
+    const [initialLoading, setInitialLoading] = useState(isTV);
     const [activeTag, setActiveTag] = useState(null);
     const searchInputRef = useRef(null);
 
     useEffect(() => {
+        if (!isTV) return;
         let mounted = true;
         getTrendingMovies()
             .then((movies) => {
@@ -123,7 +124,7 @@ export const SearchScreen = () => {
     const isShowingLoading = loading || (!searchQuery.trim() && initialLoading);
 
     const renderMobileEmptyState = () => {
-        if (isShowingLoading) {
+        if (loading) {
             return <SearchGridSkeleton />;
         }
 
@@ -397,13 +398,13 @@ export const SearchScreen = () => {
                 </View>
 
                 {/* Results Grid */}
-                {isShowingLoading ? (
+                {loading ? (
                     <View style={{ paddingHorizontal: 16 }}>
                         <SearchGridSkeleton />
                     </View>
                 ) : (
                     <FlatList
-                        data={displayedData}
+                        data={results}
                         key="mobile-search-3col"
                         keyExtractor={(item, idx) => `search-${item.id}-${idx}`}
                         numColumns={3}
